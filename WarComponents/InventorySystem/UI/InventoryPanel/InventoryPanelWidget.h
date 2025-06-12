@@ -1,0 +1,43 @@
+﻿#pragma once
+
+#include "CoreMinimal.h"
+#include "Blueprint/UserWidget.h"
+#include "War/WarComponents/InventorySystem/Interface/ContainerWidgetInterface.h"
+#include "War/WarComponents/InventorySystem/DynamicData/InventoryInstanceData.h"
+#include "InventoryPanelWidget.generated.h"
+
+
+class UCanvasPanel;
+class UWrapBox;
+class UItemSlotWidget;
+class UBackgroundBlur;
+class UBorder;
+class AInventoryBase;
+class USizeBox;
+
+UCLASS()
+class WAR_API UInventoryPanelWidget : public UUserWidget, public IContainerWidgetInterface
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(VisibleAnywhere, meta=(BindWidget), Category="UI")
+	USizeBox* InventorySizeBox;
+	UPROPERTY(VisibleAnywhere, meta=(BindWidget), Category="UI")
+	UBorder* BackgroundBorder;
+	UPROPERTY(VisibleAnywhere, meta=(BindWidget), Category="UI")
+	UWrapBox* InventoryWrapBox;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="UI")
+	TSubclassOf<UItemSlotWidget> ItemSlotWidgetClass;
+	UPROPERTY(VisibleAnywhere, Category="UI")
+	TArray<TObjectPtr<UItemSlotWidget>> CurrentInventorySlots;
+	UPROPERTY(VisibleAnywhere, Category="UI")
+	int32 MaxSlots = 72;
+
+	virtual void NativeConstruct() override;
+	virtual void InitSlots() override;
+	virtual void SyncSlots() override;
+	virtual void RemoveItemFromSlot(const FGuid& InID) override;
+	virtual void ClearAllSlots() override;
+	virtual void AddItemToSlot(const FGuid& InID) override;
+};
