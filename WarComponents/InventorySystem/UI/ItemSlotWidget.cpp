@@ -1,6 +1,4 @@
 ﻿#include "ItemSlotWidget.h"
-
-#include "IDetailTreeNode.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "CharacterPanel/CharacterPanelWidget.h"
 #include "Components/Image.h"
@@ -38,7 +36,7 @@ void UItemSlotWidget::AddInventoryToSlot(const FGuid& InID)
 		// UE_LOG(LogTemp, Warning, TEXT("UInventorySlotWidget::AddInventoryToSlot | 满了!"));
 		return;
 	}
-
+	
 	//保存
 	ItemDataInSlot.CachedInstanceID = InID;
 
@@ -68,7 +66,7 @@ void UItemSlotWidget::SetMaxCount()
 	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
 	if (!Character) return;
 
-	const FInventoryInstanceData* InstanceData = Character->GetWarInventoryComponent()->GetInventoryDataByGuid(ItemDataInSlot.CachedInstanceID);
+	const FInventoryInstanceData* InstanceData = Character->GetWarInventoryComponent()->FindInventoryDataByGuid(ItemDataInSlot.CachedInstanceID);
 	if (!InstanceData) return;
 
 	FWarInventoryRow* ItemRow = GetInventoryDataTable()->FindRow<FWarInventoryRow>(InstanceData->TableRowID, "FInventoryRow");
@@ -77,6 +75,9 @@ void UItemSlotWidget::SetMaxCount()
 	switch (ItemRow->InventoryType)
 	{
 	case EWarInventoryType::Equipment:
+		ItemDataInSlot.MaxCount = 1;
+		break;
+	case EWarInventoryType::Skill:
 		ItemDataInSlot.MaxCount = 1;
 		break;
 	case EWarInventoryType::QuestItem:
@@ -137,7 +138,7 @@ void UItemSlotWidget::Show()
 		CleanSlot();
 		return;
 	}
-	const FInventoryInstanceData* InstanceData = Character->GetWarInventoryComponent()->GetInventoryDataByGuid(ItemDataInSlot.CachedInstanceID);
+	const FInventoryInstanceData* InstanceData = Character->GetWarInventoryComponent()->FindInventoryDataByGuid(ItemDataInSlot.CachedInstanceID);
 	if (!InstanceData)
 	{
 		CleanSlot();
@@ -177,7 +178,7 @@ EEquipmentSlotType UItemSlotWidget::GetSlotTypeByInstanceID(const FGuid& InID) c
 {
 	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
 	// 获取来源数据
-	const FInventoryInstanceData* SourceInstanceData = Character->GetWarInventoryComponent()->GetInventoryDataByGuid(InID);
+	const FInventoryInstanceData* SourceInstanceData = Character->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
 	if (!SourceInstanceData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SourceInstanceData is null!"));
@@ -277,6 +278,7 @@ bool UItemSlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
 			Character->GetWarInventoryComponent()->UnequipInventory(SourceSlot->ItemDataInSlot.CachedInstanceID);
 			return true;
 		}
+		return false;
 	}
 	return false;
 }
