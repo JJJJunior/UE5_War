@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "War/WarComponents/InventorySystem/Inventory/InventoryBase.h"
+#include "War/WorldActors/Inventory/InventoryBase.h"
 #include "WarWeaponBase.generated.h"
 
 

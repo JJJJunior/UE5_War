@@ -15,17 +15,23 @@ class URootPanelWidget;
 class UInventoryPanelWidget;
 class UCharacterPanelWidget;
 
+//广播通知UI打开状态
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUIStateChanged, bool, bCharacterUIVisible, bool, bInventoryUIVisible);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class WAR_API UWarInventoryComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
+	//广播通知UI打开状态
+	void NotifyUIStateChanged() const
+	{
+		OnUIStateChanged.Broadcast(bCharacterUIVisible, bInventoryUIVisible);
+	}
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MySpawnData")
 	TObjectPtr<AWarCharacterBase> CachedOwnerCharacter;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MySpawnData")
-	TObjectPtr<APlayerController> CachedOwnerController;
 	TObjectPtr<UDataTable> GetInventoryDataTable() const;
 	//初始化UI
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="MySpawnData")
@@ -47,7 +53,7 @@ protected:
 	TMap<FGuid, TWeakObjectPtr<AInventoryBase>> InstanceToActorMap;
 	//快捷栏
 	UPROPERTY()
-	TArray<FGuid> QuickSlots;
+	TSet<FGuid> CurrentInQuickItems;
 
 	void InitRootUI();
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="MySpawnData")
@@ -60,7 +66,8 @@ public:
 	virtual void BeginPlay() override;
 	TSet<FGuid> GetCurrentEquippedItems() const { return CurrentEquippedItems; }
 	TSet<FGuid> GetCurrentInInventories() const { return CurrentInInventories; }
-	const FInventoryInstanceData* GetInventoryDataByGuid(const FGuid& Guid) const;
+	TSet<FGuid> GetCurrentInQuickItems() const { return CurrentInQuickItems; }
+	const FInventoryInstanceData* FindInventoryDataByGuid(const FGuid& Guid) const;
 
 	void ToggleInventoryUI();
 	void ToggleCharacterUI();
@@ -79,4 +86,12 @@ public:
 	TObjectPtr<AInventoryBase> FindActorInSocket(const FGuid& InID) const;
 
 	void ShowCurrentInventories() const;
+
+	//广播通知UI打开状态
+	UPROPERTY()
+	FOnUIStateChanged OnUIStateChanged;
+	// 提供状态查询函数
+	bool IsInventoryUIVisible() const { return bInventoryUIVisible; }
+	bool IsCharacterUIVisible() const { return bCharacterUIVisible; }
+	
 };

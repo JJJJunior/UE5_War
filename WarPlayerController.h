@@ -16,4 +16,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category ="Input", meta = (AllowPrivateAccess = "true"))
 	TArray<UInputMappingContext*> DefaultMappingContexts;
 	virtual void SetupInputComponent() override;
+
+public:
+	virtual void BeginPlay() override;
+
+	UFUNCTION(BlueprintCallable, Category="PlayerControllerNotify")
+	void RefreshInputMode(bool bInventoryVisible, bool bCharacterVisible);
 };
