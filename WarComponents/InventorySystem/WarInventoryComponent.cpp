@@ -3,8 +3,7 @@
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
 #include "GameInstance/WarGameInstanceSubSystem.h"
-#include "Kismet/GameplayStatics.h"
-#include "war/WarComponents/InventorySystem/Inventory/InventoryBase.h"
+#include "War/WorldActors/Inventory/InventoryBase.h"
 #include "war/WarComponents/InventorySystem/UI/InventoryPanel/InventoryPanelWidget.h"
 #include "war/WarComponents/InventorySystem/UI/CharacterPanel/CharacterPanelWidget.h"
 #include "War/WarComponents/InventorySystem/UI/RootPanel/RootPanelWidget.h"
@@ -35,9 +34,6 @@ void UWarInventoryComponent::BeginPlay()
 	CachedOwnerCharacter = CastChecked<AWarCharacterBase>(GetOwner());
 	check(CachedOwnerCharacter);
 
-	CachedOwnerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	check(CachedOwnerController);
-
 	InitRootUI();
 	InitInventories();
 }
@@ -45,21 +41,17 @@ void UWarInventoryComponent::BeginPlay()
 
 void UWarInventoryComponent::InitRootUI()
 {
-	if (CachedOwnerController)
-	{
-		checkf(RootPanelWidgetClass, TEXT("RootPanelWidgetClass 没有配置"));
-		RootPanelWidget = CreateWidget<URootPanelWidget>(GetWorld(), RootPanelWidgetClass);
-		// AddToViewport(主视图)
-		RootPanelWidget->AddToViewport();
-		RootPanelWidget->SetVisibility(ESlateVisibility::Hidden);
-	}
+	checkf(RootPanelWidgetClass, TEXT("RootPanelWidgetClass 没有配置"));
+	RootPanelWidget = CreateWidget<URootPanelWidget>(GetWorld(), RootPanelWidgetClass);
+	// AddToViewport(主视图)
+	RootPanelWidget->AddToViewport();
 }
 
 //初始化装备数据主库
 void UWarInventoryComponent::InitInventories()
 {
 	const TArray<FName> WeaponList = {FName("Katana"), FName("KatanaScabbard"), FName("Katana"), FName("KatanaScabbard")};
-	
+
 	for (int32 i = 0; i < WeaponList.Num(); i++)
 	{
 		FInventoryInstanceData NewItem = GenerateNewWeapon(WeaponList[i]);
@@ -77,7 +69,7 @@ void UWarInventoryComponent::AddInventory(const FInventoryInstanceData& NewData)
 }
 
 //查找数据
-const FInventoryInstanceData* UWarInventoryComponent::GetInventoryDataByGuid(const FGuid& Guid) const
+const FInventoryInstanceData* UWarInventoryComponent::FindInventoryDataByGuid(const FGuid& Guid) const
 {
 	if (const FInventoryInstanceData* FindData = AllInventoryData.Find(Guid))
 	{
@@ -90,56 +82,28 @@ const FInventoryInstanceData* UWarInventoryComponent::GetInventoryDataByGuid(con
 void UWarInventoryComponent::ToggleInventoryUI()
 {
 	bInventoryUIVisible = !bInventoryUIVisible;
-
+	NotifyUIStateChanged();
 	if (bInventoryUIVisible)
 	{
-		RootPanelWidget->SetVisibility(ESlateVisibility::Visible);
 		RootPanelWidget->InventoryPanelWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 	else
 	{
 		RootPanelWidget->InventoryPanelWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
-
-	// 只在两个都关闭的时候才隐藏 Root 面板
-	if (!bInventoryUIVisible && !bCharacterUIVisible)
-	{
-		RootPanelWidget->SetVisibility(ESlateVisibility::Collapsed);
-		CachedOwnerController->SetShowMouseCursor(false);
-		CachedOwnerController->SetInputMode(FInputModeGameOnly());
-	}
-	else
-	{
-		CachedOwnerController->SetShowMouseCursor(true);
-		CachedOwnerController->SetInputMode(FInputModeGameAndUI());
-	}
 }
 
 void UWarInventoryComponent::ToggleCharacterUI()
 {
 	bCharacterUIVisible = !bCharacterUIVisible;
-
+	NotifyUIStateChanged();
 	if (bCharacterUIVisible)
 	{
-		RootPanelWidget->SetVisibility(ESlateVisibility::Visible);
 		RootPanelWidget->CharacterPanelWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 	else
 	{
 		RootPanelWidget->CharacterPanelWidget->SetVisibility(ESlateVisibility::Collapsed);
-	}
-
-	// 只在两个都关闭的时候才隐藏 Root 面板
-	if (!bInventoryUIVisible && !bCharacterUIVisible)
-	{
-		RootPanelWidget->SetVisibility(ESlateVisibility::Collapsed);
-		CachedOwnerController->SetShowMouseCursor(false);
-		CachedOwnerController->SetInputMode(FInputModeGameOnly());
-	}
-	else
-	{
-		CachedOwnerController->SetShowMouseCursor(true);
-		CachedOwnerController->SetInputMode(FInputModeGameAndUI());
 	}
 }
 
@@ -166,7 +130,7 @@ TWeakObjectPtr<AInventoryBase> UWarInventoryComponent::GetSceneActor(const FGuid
 //根据名称生成装备到人物身上(ok)
 void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 {
-	const FInventoryInstanceData* FindData = GetInventoryDataByGuid(InID);
+	const FInventoryInstanceData* FindData = FindInventoryDataByGuid(InID);
 	if (!FindData->InstanceID.IsValid())
 	{
 		UE_LOG(LogTemp, Error, TEXT("FindData 不存在"));
@@ -296,7 +260,7 @@ FGuid UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
 	{
 		if (EquippedID == InID) continue;
 
-		const FInventoryInstanceData* EquippedData = GetInventoryDataByGuid(EquippedID);
+		const FInventoryInstanceData* EquippedData = FindInventoryDataByGuid(EquippedID);
 		if (!EquippedData) continue;
 
 		const FWarInventoryRow* EquippedRow = GetInventoryDataTable()->FindRow<FWarInventoryRow>(EquippedData->TableRowID, "Find Equipped Item");
@@ -315,7 +279,7 @@ FGuid UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
 // 根据当前人物的 Socket 名称，检查是否已存在挂载的装备，返回该装备的 Actor 指针（无则返回 nullptr）
 TObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInSocket(const FGuid& InID) const
 {
-	const FInventoryInstanceData* EquippedData = GetInventoryDataByGuid(InID);
+	const FInventoryInstanceData* EquippedData = FindInventoryDataByGuid(InID);
 	if (!EquippedData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("EquippedData 不存在"));
@@ -350,7 +314,7 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
 {
 	if (!CurrentEquippedItems.Contains(InID)) return;
 
-	const FInventoryInstanceData* EquippedData = GetInventoryDataByGuid(InID);
+	const FInventoryInstanceData* EquippedData = FindInventoryDataByGuid(InID);
 	if (!EquippedData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("EquippedData 不存在"));
@@ -390,6 +354,7 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
 FInventoryInstanceData UWarInventoryComponent::GenerateNewWeapon(const FName& InInventoryName)
 {
 	FInventoryInstanceData NewWeaponData;
+	NewWeaponData.InstanceID = FGuid::NewGuid();
 	NewWeaponData.TableRowID = InInventoryName;
 	NewWeaponData.InventoryType = EWarInventoryType::Equipment;
 	NewWeaponData.ExtraData = UWeaponInstanceData::CreateWeaponInstance(this, 100.f, 10.f);
