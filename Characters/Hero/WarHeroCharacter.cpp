@@ -6,9 +6,11 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
 #include "InputActionValue.h"
+#include "GameTags/WarGameTags.h"
 #include "WarComponents/Input/WarInputComponent.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
-#include "GameTags/WarGameTags.h"
+#include "WarComponents/InteractionSystem/WarInteractionComponent.h"
+
 
 AWarHeroCharacter::AWarHeroCharacter()
 {
@@ -38,12 +40,15 @@ AWarHeroCharacter::AWarHeroCharacter()
 	FollowCamera->bUsePawnControlRotation = false;
 
 	WarInventoryComponent = CreateDefaultSubobject<UWarInventoryComponent>(TEXT("WarInventoryComponent"));
+	WarInteractionComponent = CreateDefaultSubobject<UWarInteractionComponent>(TEXT("WarInteractionComponent"));
 }
 
 
 void AWarHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	checkf(WarInventoryComponent, TEXT("WarInventoryComponent is NULL"));
+	checkf(WarInteractionComponent, TEXT("WarInteractionComponent is NULL"));
 }
 
 

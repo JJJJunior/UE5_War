@@ -14,6 +14,7 @@ struct FInputActionValue;
 class UDataAsset_InputConfig;
 class UWarInventoryComponent;
 class UInventoryPanelWidget;
+class UWarInteractionComponent;
 
 UCLASS(Blueprintable)
 class AWarHeroCharacter : public AWarCharacterBase
@@ -68,15 +69,19 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="MyComponents")
 	TObjectPtr<UWarInventoryComponent> WarInventoryComponent;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="MyComponents")
+	TObjectPtr<UWarInteractionComponent> WarInteractionComponent;
 
 public:
 	AWarHeroCharacter();
 
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 	virtual void BeginPlay() override;
-	
+
 	UFUNCTION(BlueprintCallable)
-	UWarInventoryComponent* GetWarInventoryComponent() const { return WarInventoryComponent; }
+	FORCEINLINE UWarInventoryComponent* GetWarInventoryComponent() const { return WarInventoryComponent; }
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE UWarInteractionComponent* GetWarInteractionComponent() const { return WarInteractionComponent; }
 };

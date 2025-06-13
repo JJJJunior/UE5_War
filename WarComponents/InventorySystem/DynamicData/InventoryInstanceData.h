@@ -22,7 +22,7 @@ struct FInventoryInstanceData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName TableRowID = NAME_None;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EWarInventoryType InventoryType = EWarInventoryType(); // 武器、装备、消耗品、任务物品等
+	EWarInventoryType InventoryType = EWarInventoryType::None; // 武器、装备、消耗品、任务物品等
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryExtraData> ExtraData; // 子类实例数据，支持多态
 };

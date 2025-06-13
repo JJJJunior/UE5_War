@@ -110,6 +110,8 @@ void UWarInventoryComponent::ToggleCharacterUI()
 
 TWeakObjectPtr<AInventoryBase> UWarInventoryComponent::GetSceneActor(const FGuid& InstanceID) const
 {
+	if (!InstanceID.IsValid()) return nullptr;
+
 	// 1. 检查是否存在于Map
 	const TWeakObjectPtr<AInventoryBase>* FoundPtr = InstanceToActorMap.Find(InstanceID);
 	if (!FoundPtr) // 键不存在
@@ -130,6 +132,8 @@ TWeakObjectPtr<AInventoryBase> UWarInventoryComponent::GetSceneActor(const FGuid
 //根据名称生成装备到人物身上(ok)
 void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 {
+	if (!InID.IsValid()) return;
+
 	const FInventoryInstanceData* FindData = FindInventoryDataByGuid(InID);
 	if (!FindData->InstanceID.IsValid())
 	{
@@ -148,8 +152,7 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 	if (ItemRow->InventoryType != EWarInventoryType::Equipment) return;
 
 	//当前Socket中存在指针就略过
-	FGuid Guid = HasInventoryInSocket(InID);
-	if (Guid.IsValid() && Guid == InID) return;
+	if (HasInventoryInSocket(InID)) return;
 
 	//异步生成装备加载class的武器类
 	FActorSpawnParameters SpawnParameters;
@@ -209,6 +212,8 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 //从背包拿装备穿身上
 void UWarInventoryComponent::EquipInventory(const FGuid& InID)
 {
+	if (!InID.IsValid()) return;
+
 	//当前包里面没有装备就忽略
 	if (!CurrentInInventories.Contains(InID)) return;
 	//防止崩溃
@@ -247,12 +252,14 @@ void UWarInventoryComponent::EquipInventory(const FGuid& InID)
 
 
 // 根据当前人物的 Socket 名称，检查是否已存在挂载的装备，返回该装备的 InstanceID（无则返回无效 ID）
-FGuid UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
+bool UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
 {
+	if (!InID.IsValid()) return false;
+
 	// 获取当前人物的 Socket 名称
 	if (!CachedOwnerCharacter || !CachedOwnerCharacter->GetMesh())
 	{
-		return FGuid();
+		return false;
 	}
 	const FName CurrentSocketName = CachedOwnerCharacter->GetMesh()->GetAttachSocketName();
 	// 遍历当前已装备的物品
@@ -269,16 +276,18 @@ FGuid UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
 		// 如果已装备物品的 Socket 和当前人物 Socket 相同，返回它的 InstanceID
 		if (EquippedRow->SocketName == CurrentSocketName)
 		{
-			return EquippedID;
+			return true;
 		}
 	}
-	return FGuid();
+	return false;
 }
 
 
 // 根据当前人物的 Socket 名称，检查是否已存在挂载的装备，返回该装备的 Actor 指针（无则返回 nullptr）
 TObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInSocket(const FGuid& InID) const
 {
+	if (!InID.IsValid()) return nullptr;
+	
 	const FInventoryInstanceData* EquippedData = FindInventoryDataByGuid(InID);
 	if (!EquippedData)
 	{
@@ -312,8 +321,10 @@ TObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInSocket(const FGuid
 // 从身上取下放入背包
 void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
 {
+	if (!InID.IsValid()) return;
+	
 	if (!CurrentEquippedItems.Contains(InID)) return;
-
+	
 	const FInventoryInstanceData* EquippedData = FindInventoryDataByGuid(InID);
 	if (!EquippedData)
 	{

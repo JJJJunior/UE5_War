@@ -8,6 +8,7 @@
 UENUM(BlueprintType)
 enum class EEquipmentSlotType:uint8
 {
+	None,
 	Head,
 	Body,
 	Neck,
@@ -22,6 +23,7 @@ enum class EEquipmentSlotType:uint8
 UENUM(BlueprintType)
 enum class EWarInventoryType : uint8
 {
+	None,
 	Equipment, // 装备 (武器、护甲等可穿戴/使用的物品)
 	QuestItem, // 任务物品 (专门用于任务的物品)
 	Consumable, // 消耗品 (使用后会消失的物品，如药水、食物)
@@ -38,7 +40,7 @@ struct FWarInventoryRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	FWarInventoryRow(): Texture(nullptr), InventoryType(), EquipmentSlotType()
+	FWarInventoryRow(): Texture(nullptr)
 	{
 	}
 
@@ -51,9 +53,9 @@ struct FWarInventoryRow : public FTableRowBase
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TSoftObjectPtr<UTexture2D> Texture;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	EWarInventoryType InventoryType;
+	EWarInventoryType InventoryType = EWarInventoryType::None;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	EEquipmentSlotType EquipmentSlotType;
+	EEquipmentSlotType EquipmentSlotType = EEquipmentSlotType::None;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	FName SocketName;
 };

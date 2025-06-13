@@ -80,7 +80,7 @@ public:
 	void EquipInventory(const FGuid& InID);
 	void UnequipInventory(const FGuid& InID);
 	void SpawnInventory(const FGuid& InID);
-	FGuid HasInventoryInSocket(const FGuid& InID) const;
+	bool HasInventoryInSocket(const FGuid& InID) const;
 	// 查询当前装备的场景 Actor
 	TWeakObjectPtr<AInventoryBase> GetSceneActor(const FGuid& InstanceID) const;
 	TObjectPtr<AInventoryBase> FindActorInSocket(const FGuid& InID) const;
