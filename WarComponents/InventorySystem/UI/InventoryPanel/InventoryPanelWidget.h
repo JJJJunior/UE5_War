@@ -40,4 +40,5 @@ public:
 	virtual void RemoveItemFromSlot(const FGuid& InID) override;
 	virtual void ClearAllSlots() override;
 	virtual void AddItemToSlot(const FGuid& InID) override;
+	virtual int32 GetMaxSlots() const override { return MaxSlots; }
 };

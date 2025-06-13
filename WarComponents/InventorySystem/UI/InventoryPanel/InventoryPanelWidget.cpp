@@ -18,11 +18,7 @@ void UInventoryPanelWidget::InitSlots()
 	checkf(ItemSlotWidgetClass, TEXT("ItemSlotWidgetClass 没有配置"));
 
 	if (!InventoryWrapBox) return;
-
-	// 先确保可见
-	InventoryWrapBox->SetVisibility(ESlateVisibility::Visible);
-	this->SetVisibility(ESlateVisibility::Visible);
-
+	
 	for (int32 i = 0; i < MaxSlots; i++)
 	{
 		if (UItemSlotWidget* InventorySlot = CreateWidget<UItemSlotWidget>(GetWorld(), ItemSlotWidgetClass))
