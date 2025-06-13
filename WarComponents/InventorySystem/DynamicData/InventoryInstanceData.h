@@ -3,6 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
 #include "InventoryInstanceData.generated.h"
 
 
@@ -17,18 +18,13 @@ struct FInventoryInstanceData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FGuid InstanceID;
+	FGuid InstanceID = FGuid();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName TableRowID;
+	FName TableRowID = NAME_None;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EWarInventoryType InventoryType; // 武器、装备、消耗品、任务物品等
+	EWarInventoryType InventoryType = EWarInventoryType(); // 武器、装备、消耗品、任务物品等
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryExtraData> ExtraData; // 子类实例数据，支持多态
-
-	FInventoryInstanceData(): InventoryType()
-	{
-		InstanceID = FGuid::NewGuid();
-	};
 };
 
 UCLASS(Blueprintable)
