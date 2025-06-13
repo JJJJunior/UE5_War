@@ -61,4 +61,5 @@ public:
 	virtual void ClearAllSlots() override;
 	virtual void AddItemToSlot(const FGuid& InID) override;
 	TObjectPtr<UDataTable> GetInventoryDataTable() const;
+	virtual int32 GetMaxSlots() const override { return CurrentCharacterSlots.Num(); }
 };

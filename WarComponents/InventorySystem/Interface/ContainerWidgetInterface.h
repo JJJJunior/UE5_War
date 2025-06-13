@@ -26,4 +26,5 @@ public:
 	virtual void RemoveItemFromSlot(const FGuid& InID) =0;
 	virtual void ClearAllSlots() =0;
 	virtual void AddItemToSlot(const FGuid& InID) =0;
+	virtual int32 GetMaxSlots() const =0;
 };
