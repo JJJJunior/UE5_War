@@ -101,21 +101,18 @@ void UCharacterPanelWidget::AddItemToSlot(const FGuid& InID)
 {
 	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
 	ensureMsgf(Character, TEXT("AWarHeroCharacter 不存在"));
-	if (!Character)return;
-	const FInventoryInstanceData* InData = Character->GetWarInventoryComponent()->GetInventoryDataByGuid(InID);
-	ensureMsgf(Character, TEXT("FInventoryInstanceData 不存在"));
-	if (!InData)return;
-
-	if (FWarInventoryRow* ItemRow = this->GetInventoryDataTable()->FindRow<FWarInventoryRow>(InData->TableRowID, "Find ItemName"))
+	const FInventoryInstanceData* InData = Character->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
+	ensureMsgf(InData, TEXT("FInventoryInstanceData 不存在"));
+	FWarInventoryRow* ItemRow = this->GetInventoryDataTable()->FindRow<FWarInventoryRow>(InData->TableRowID, "Find ItemName");
+	ensureMsgf(ItemRow, TEXT("FWarInventoryRow 不存在"));
+	
+	if (ItemRow->InventoryType == EWarInventoryType::Equipment)
 	{
-		if (ItemRow->InventoryType == EWarInventoryType::Equipment)
+		if (UItemSlotWidget** SlotWidgetPtr = CurrentCharacterSlots.Find(ItemRow->EquipmentSlotType))
 		{
-			if (UItemSlotWidget** SlotWidgetPtr = CurrentCharacterSlots.Find(ItemRow->EquipmentSlotType))
+			if (UItemSlotWidget* SlotWidget = *SlotWidgetPtr)
 			{
-				if (UItemSlotWidget* SlotWidget = *SlotWidgetPtr)
-				{
-					SlotWidget->AddInventoryToSlot(InID);
-				}
+				SlotWidget->AddInventoryToSlot(InID);
 			}
 		}
 	}
@@ -126,19 +123,16 @@ void UCharacterPanelWidget::RemoveItemFromSlot(const FGuid& InID)
 {
 	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
 	ensureMsgf(Character, TEXT("AWarHeroCharacter 不存在"));
-	if (!Character)return;
-	const FInventoryInstanceData* InData = Character->GetWarInventoryComponent()->GetInventoryDataByGuid(InID);
-	ensureMsgf(Character, TEXT("FInventoryInstanceData 不存在"));
-	if (!InData)return;
+	const FInventoryInstanceData* InData = Character->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
+	ensureMsgf(InData, TEXT("FInventoryInstanceData 不存在"));
+	FWarInventoryRow* ItemRow = this->GetInventoryDataTable()->FindRow<FWarInventoryRow>(InData->TableRowID, "Find ItemName");
+	ensureMsgf(ItemRow, TEXT("FWarInventoryRow 不存在"));
 
-	if (FWarInventoryRow* ItemRow = this->GetInventoryDataTable()->FindRow<FWarInventoryRow>(InData->TableRowID, "Find ItemName"))
+	if (UItemSlotWidget** SlotWidgetPtr = CurrentCharacterSlots.Find(ItemRow->EquipmentSlotType))
 	{
-		if (UItemSlotWidget** SlotWidgetPtr = CurrentCharacterSlots.Find(ItemRow->EquipmentSlotType))
+		if (UItemSlotWidget* SlotWidget = *SlotWidgetPtr)
 		{
-			if (UItemSlotWidget* SlotWidget = *SlotWidgetPtr)
-			{
-				SlotWidget->RemoveItem();
-			}
+			SlotWidget->RemoveItem();
 		}
 	}
 }
