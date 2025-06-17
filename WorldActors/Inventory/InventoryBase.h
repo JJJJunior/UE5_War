@@ -18,9 +18,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<USceneComponent> RootScene;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Inventory")
-	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
+	TObjectPtr<UStaticMeshComponent> StaticMeshComponent; //主要用于WarInteractionComponent的射线进行交互
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Inventory")
-	TObjectPtr<USphereComponent> InteractorSphereComponent;
+	TObjectPtr<USphereComponent> InteractionSphere; //主要用于和WarInteractionComponent进行overlap交互
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Inventory")
 	FName TableRowID;
 
@@ -32,6 +32,7 @@ public:
 	virtual void OnBeginFocus_Implementation() override;
 	// 瞄准离开时
 	virtual void OnEndFocus_Implementation() override;
-	//文字提示
-	virtual FString GetInteractText_Implementation() const;
+	virtual void BeginPlay() override;
+	//关闭碰撞体
+	void DisableInteractionSphere() const;
 };

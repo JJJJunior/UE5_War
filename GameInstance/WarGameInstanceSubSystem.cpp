@@ -1,32 +1,28 @@
 ﻿#include "WarGameInstanceSubSystem.h"
+#include "DataAssets/GameConfigData.h"
 
 void UWarGameInstanceSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	WarSpawnDataTable = TSoftObjectPtr<UDataTable>(FSoftObjectPath(TEXT("/Game/ThirdPerson/InventorySystem/DT_InventoryData.DT_InventoryData")));
-	check(!WarSpawnDataTable.IsNull());
-	CachedWarSpawnDataTable = WarSpawnDataTable.LoadSynchronous();
-	if (!CachedWarSpawnDataTable)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to load DataTable from path: %s"), *WarSpawnDataTable.ToString());
-	}
-
-	WarAbilityDataTable = TSoftObjectPtr<UDataTable>(FSoftObjectPath(TEXT("/Game/ThirdPerson/DT_AbilityData.DT_AbilityData")));
-	check(!WarAbilityDataTable.IsNull());
-	CachedWarAbilityDataTable = WarAbilityDataTable.LoadSynchronous();
-	if (!CachedWarAbilityDataTable)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to load DataTable from path: %s"), *WarAbilityDataTable.ToString());
-	}
+	// 创建软引用
+	TSoftObjectPtr<UGameConfigData> SoftConfigData = TSoftObjectPtr<UGameConfigData>(FSoftObjectPath(TEXT("/Game/ThirdPerson/DA_GameConfig.DA_GameConfig")));
+	// 同步加载资源
+	GameConfigData = SoftConfigData.LoadSynchronous();
+	checkf(GameConfigData, TEXT("GameConfigData is NULL"))
 }
 
 TObjectPtr<UDataTable> UWarGameInstanceSubSystem::GetCachedWarInventoryDataTable() const
 {
-	check(CachedWarSpawnDataTable);
-	return CachedWarSpawnDataTable;
+	// 同步加载资源
+	return GameConfigData->WarInventoryDataTable.LoadSynchronous();
 }
 
 TObjectPtr<UDataTable> UWarGameInstanceSubSystem::GetCachedWarAbilityDataTable() const
 {
-	check(CachedWarAbilityDataTable);
-	return CachedWarAbilityDataTable;
+	// 同步加载资源
+	return GameConfigData->WarAbilityDataTable.LoadSynchronous();
+}
+
+TSoftObjectPtr<UMaterialInstance> UWarGameInstanceSubSystem::GetOutLineMaterial() const
+{
+	return GameConfigData->OutLineMaterial;
 }

@@ -50,7 +50,7 @@ protected:
 	TSet<FGuid> CurrentEquippedItems;
 	// ID -> 场景 Actor 映射表（用 WeakPtr 防止内存泄漏）
 	UPROPERTY()
-	TMap<FGuid, TWeakObjectPtr<AInventoryBase>> InstanceToActorMap;
+	TMap<FGuid, TObjectPtr<AInventoryBase>> InstanceToActorMap;
 	//快捷栏
 	UPROPERTY()
 	TSet<FGuid> CurrentInQuickItems;
@@ -82,16 +82,14 @@ public:
 	void SpawnInventory(const FGuid& InID);
 	bool HasInventoryInSocket(const FGuid& InID) const;
 	// 查询当前装备的场景 Actor
-	TWeakObjectPtr<AInventoryBase> GetSceneActor(const FGuid& InstanceID) const;
-	TObjectPtr<AInventoryBase> FindActorInSocket(const FGuid& InID) const;
+	TObjectPtr<AInventoryBase> FindActorInActorMap(const FGuid& InID) const;
 
 	void ShowCurrentInventories() const;
-
+	
 	//广播通知UI打开状态
 	UPROPERTY()
 	FOnUIStateChanged OnUIStateChanged;
 	// 提供状态查询函数
 	bool IsInventoryUIVisible() const { return bInventoryUIVisible; }
 	bool IsCharacterUIVisible() const { return bCharacterUIVisible; }
-	
 };

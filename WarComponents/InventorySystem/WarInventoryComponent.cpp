@@ -108,26 +108,26 @@ void UWarInventoryComponent::ToggleCharacterUI()
 }
 
 
-TWeakObjectPtr<AInventoryBase> UWarInventoryComponent::GetSceneActor(const FGuid& InstanceID) const
-{
-	if (!InstanceID.IsValid()) return nullptr;
-
-	// 1. 检查是否存在于Map
-	const TWeakObjectPtr<AInventoryBase>* FoundPtr = InstanceToActorMap.Find(InstanceID);
-	if (!FoundPtr) // 键不存在
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GetSceneActor: InstanceID %s 不存在于Map中"), *InstanceID.ToString());
-		return nullptr;
-	}
-
-	// 2. 检查弱指针有效性
-	if (!FoundPtr->IsValid()) // 指针存在但对象已销毁
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GetSceneActor: InstanceID %s 的Actor已被销毁"), *InstanceID.ToString());
-		return nullptr;
-	}
-	return *FoundPtr;
-}
+// TObjectPtr<AInventoryBase> UWarInventoryComponent::GetSceneActor(const FGuid& InstanceID) const
+// {
+// 	if (!InstanceID.IsValid()) return nullptr;
+//
+// 	// 1. 检查是否存在于Map
+// 	const TObjectPtr<AInventoryBase>* FoundPtr = InstanceToActorMap.Find(InstanceID);
+// 	if (!FoundPtr) // 键不存在
+// 	{
+// 		UE_LOG(LogTemp, Warning, TEXT("GetSceneActor: InstanceID %s 不存在于Map中"), *InstanceID.ToString());
+// 		return nullptr;
+// 	}
+//
+// 	// 2. 检查针有效性
+// 	if (!IsValid(*FoundPtr)) // 指针存在但对象已销毁
+// 	{
+// 		UE_LOG(LogTemp, Warning, TEXT("GetSceneActor: InstanceID %s 的Actor已被销毁"), *InstanceID.ToString());
+// 		return nullptr;
+// 	}
+// 	return *FoundPtr;
+// }
 
 //根据名称生成装备到人物身上(ok)
 void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
@@ -177,6 +177,8 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 			TObjectPtr<AInventoryBase> InventoryActor = GetWorld()->SpawnActor<AInventoryBase>(LoadedClass, SpawnLocation, SpawnRotation, SpawnParameters);
 			//移入socket
 			InventoryActor->AttachToComponent(CachedOwnerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ItemRow->SocketName);
+			//消除interaction的碰撞体
+			InventoryActor->DisableInteractionSphere();
 			// 缓存指针
 			InstanceToActorMap.Emplace(InID, InventoryActor);
 		});
@@ -193,6 +195,8 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 		TObjectPtr<AInventoryBase> InventoryActor = GetWorld()->SpawnActor<AInventoryBase>(LoadedClass, SpawnLocation, SpawnRotation, SpawnParameters);
 		//移入socket
 		InventoryActor->AttachToComponent(CachedOwnerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ItemRow->SocketName);
+		//消除interaction的碰撞体
+		InventoryActor->DisableInteractionSphere();
 		// 缓存指针
 		InstanceToActorMap.Emplace(InID, InventoryActor);
 	}
@@ -222,11 +226,11 @@ void UWarInventoryComponent::EquipInventory(const FGuid& InID)
 		return;
 	}
 
-	if (TObjectPtr<AInventoryBase> Inventory = FindActorInSocket(InID))
+	if (TObjectPtr<AInventoryBase> Inventory = FindActorInActorMap(InID))
 	{
 		for (const auto& Pair : InstanceToActorMap)
 		{
-			if (Pair.Value.IsValid() && Pair.Value == Inventory)
+			if (Pair.Value && Pair.Value == Inventory)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("InID 有同类型装备已经穿戴 InstanceToActorMap ID：%s"), *Pair.Key.ToString());
 				UnequipInventory(Pair.Key);
@@ -284,10 +288,10 @@ bool UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
 
 
 // 根据当前人物的 Socket 名称，检查是否已存在挂载的装备，返回该装备的 Actor 指针（无则返回 nullptr）
-TObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInSocket(const FGuid& InID) const
+TObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInActorMap(const FGuid& InID) const
 {
 	if (!InID.IsValid()) return nullptr;
-	
+
 	const FInventoryInstanceData* EquippedData = FindInventoryDataByGuid(InID);
 	if (!EquippedData)
 	{
@@ -304,7 +308,7 @@ TObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInSocket(const FGuid
 
 	for (const auto& Pair : InstanceToActorMap)
 	{
-		if (!Pair.Value.IsValid()) continue;
+		if (!Pair.Value) continue;
 
 		const USceneComponent* Parent = Pair.Value->GetAttachParentActor() ? Pair.Value->GetAttachParentActor()->GetRootComponent() : nullptr;
 		if (!Parent) continue;
@@ -322,9 +326,9 @@ TObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInSocket(const FGuid
 void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
 {
 	if (!InID.IsValid()) return;
-	
+
 	if (!CurrentEquippedItems.Contains(InID)) return;
-	
+
 	const FInventoryInstanceData* EquippedData = FindInventoryDataByGuid(InID);
 	if (!EquippedData)
 	{
@@ -349,15 +353,19 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
 	RootPanelWidget->InventoryPanelWidget->AddItemToSlot(InID);
 
 	// 销毁世界 Socket 上的装备
-	TWeakObjectPtr<AInventoryBase> InventoryPtr = GetSceneActor(InID);
-	if (!InventoryPtr.IsValid())
+	TObjectPtr<AInventoryBase> InventoryPtr = FindActorInActorMap(InID);
+	if (!InventoryPtr)
 	{
 		UE_LOG(LogTemp, Error, TEXT("InventoryPtr 无效"));
 		return;
 	}
+	// 先解除挂载
+	InventoryPtr->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	// 销毁世界的实例
 	InventoryPtr->Destroy();
-
+	InstanceToActorMap.Remove(InID);
 	UE_LOG(LogTemp, Warning, TEXT("UnequipInventory 装备 %s"), *InID.ToString());
+
 	ShowCurrentInventories();
 }
 

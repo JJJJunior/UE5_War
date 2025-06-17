@@ -25,7 +25,4 @@ public:
 	// 瞄准离开时
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Interaction")
 	void OnEndFocus();
-	//文字提示
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Interaction")
-	FString GetInteractText();
 };

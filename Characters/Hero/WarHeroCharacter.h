@@ -15,6 +15,8 @@ class UDataAsset_InputConfig;
 class UWarInventoryComponent;
 class UInventoryPanelWidget;
 class UWarInteractionComponent;
+class USphereComponent;
+
 
 UCLASS(Blueprintable)
 class AWarHeroCharacter : public AWarCharacterBase
@@ -67,10 +69,11 @@ protected:
 	bool bCanClick = true;
 	void ResetCooldown();
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="MyComponents")
+	UPROPERTY()
 	TObjectPtr<UWarInventoryComponent> WarInventoryComponent;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="MyComponents")
+	UPROPERTY()
 	TObjectPtr<UWarInteractionComponent> WarInteractionComponent;
+
 
 public:
 	AWarHeroCharacter();
@@ -82,6 +85,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UWarInventoryComponent* GetWarInventoryComponent() const { return WarInventoryComponent; }
+
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UWarInteractionComponent* GetWarInteractionComponent() const { return WarInteractionComponent; }
+
 };

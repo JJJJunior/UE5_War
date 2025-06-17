@@ -1,5 +1,6 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-
-#define ECC_PlayerInteraction ECC_GameTraceChannel1
+//
+#define ECC_Interaction ECC_GameTraceChannel1
+#define InteractionComponent ECC_GameTraceChannel2

@@ -17,8 +17,10 @@ class WAR_API AWarWeaponBase : public AInventoryBase
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision")
 	TObjectPtr<UBoxComponent> WeaponCollisionBox;
+
 	
 public:
+
 	AWarWeaponBase();
 	UBoxComponent*GetWeaponCollisionBox()const;
 };

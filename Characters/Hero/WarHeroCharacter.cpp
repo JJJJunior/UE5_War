@@ -6,10 +6,14 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
 #include "InputActionValue.h"
+#include "DataAssets/GameConfigData.h"
+#include "GameInstance/WarGameInstanceSubSystem.h"
 #include "GameTags/WarGameTags.h"
+#include "Kismet/GameplayStatics.h"
 #include "WarComponents/Input/WarInputComponent.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "WarComponents/InteractionSystem/WarInteractionComponent.h"
+
 
 
 AWarHeroCharacter::AWarHeroCharacter()
@@ -41,6 +45,7 @@ AWarHeroCharacter::AWarHeroCharacter()
 
 	WarInventoryComponent = CreateDefaultSubobject<UWarInventoryComponent>(TEXT("WarInventoryComponent"));
 	WarInteractionComponent = CreateDefaultSubobject<UWarInteractionComponent>(TEXT("WarInteractionComponent"));
+	
 }
 
 
@@ -49,6 +54,11 @@ void AWarHeroCharacter::BeginPlay()
 	Super::BeginPlay();
 	checkf(WarInventoryComponent, TEXT("WarInventoryComponent is NULL"));
 	checkf(WarInteractionComponent, TEXT("WarInteractionComponent is NULL"));
+
+	if (UWarGameInstanceSubSystem* SubSystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>())
+	{
+		CameraBoom->SocketOffset = SubSystem->GameConfigData->FollowCameraOffset;
+	}
 }
 
 
@@ -114,7 +124,6 @@ void AWarHeroCharacter::DoMove(float Right, float Forward)
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
 		AddMovementInput(ForwardDirection, Forward);
 		AddMovementInput(RightDirection, Right);
 	}
