@@ -27,21 +27,21 @@ protected:
 	TObjectPtr<AWarPlayerController> CachedWarPlayerController;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Inventory")
 	TObjectPtr<USphereComponent> InteractionSphereComponent;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="MyConfig")
 	float CrosshairTraceDistance = 3000.f;
-
 	// 焦点射线检测，当前可交互物体
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MyConfig")
 	AActor* CurrentInteractable = nullptr;
 	FVector CameraOffset = FVector::ZeroVector;
-
+	
 	//参数设定
 	FCollisionQueryParams TraceParams;
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MyConfig")
 	bool bEnableCrosshairTrace = false;
+	
 	UWarInteractionComponent();
 	//焦点射线检测
 	void CrosshairTrace();

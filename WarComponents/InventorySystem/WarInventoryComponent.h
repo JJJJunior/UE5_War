@@ -61,35 +61,40 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="MySpawnData")
 	bool bCharacterUIVisible = false;
 
+	//添加物品
+	void AddInventory(const FInventoryInstanceData& NewData);
+	// 装备物品（生成场景 Actor）
+	void SpawnInventory(const FGuid& InID);
+	bool HasInventoryInSocket(const FGuid& InID) const;
+	// 查询当前装备的场景 Actor
+	TObjectPtr<AInventoryBase> FindActorInActorMap(const FGuid& InID) const;
+	void ShowCurrentInventories() const;
+
+	//根据tablename生成装备放入背包
+	FInventoryInstanceData GenerateNewWeapon(const FName& InInventoryName);
+
 public:
 	UWarInventoryComponent();
 	virtual void BeginPlay() override;
 	TSet<FGuid> GetCurrentEquippedItems() const { return CurrentEquippedItems; }
 	TSet<FGuid> GetCurrentInInventories() const { return CurrentInInventories; }
 	TSet<FGuid> GetCurrentInQuickItems() const { return CurrentInQuickItems; }
-	const FInventoryInstanceData* FindInventoryDataByGuid(const FGuid& Guid) const;
-
 	void ToggleInventoryUI();
 	void ToggleCharacterUI();
-	FInventoryInstanceData GenerateNewWeapon(const FName& InInventoryName);
-
 	void InitInventories();
-	//添加物品
-	void AddInventory(const FInventoryInstanceData& NewData);
-	// 装备物品（生成场景 Actor）
-	void EquipInventory(const FGuid& InID);
-	void UnequipInventory(const FGuid& InID);
-	void SpawnInventory(const FGuid& InID);
-	bool HasInventoryInSocket(const FGuid& InID) const;
-	// 查询当前装备的场景 Actor
-	TObjectPtr<AInventoryBase> FindActorInActorMap(const FGuid& InID) const;
 
-	void ShowCurrentInventories() const;
-	
-	//广播通知UI打开状态
-	UPROPERTY()
-	FOnUIStateChanged OnUIStateChanged;
 	// 提供状态查询函数
 	bool IsInventoryUIVisible() const { return bInventoryUIVisible; }
 	bool IsCharacterUIVisible() const { return bCharacterUIVisible; }
+
+	//给外部调用
+	//穿装备
+	void EquipInventory(const FGuid& InID);
+	void UnequipInventory(const FGuid& InID);
+	//广播通知UI打开状态
+	UPROPERTY()
+	FOnUIStateChanged OnUIStateChanged;
+	void GenerateAndAddInventory(const FName& TableID);
+	const FWarInventoryRow* FindItemRowByGuid(const FGuid& Guid) const;
+	const FInventoryInstanceData* FindInventoryDataByGuid(const FGuid& Guid) const;
 };

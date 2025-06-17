@@ -18,7 +18,7 @@ class WAR_API IInteractableInterface
 public:
 	// 交互函数
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Interaction")
-	void Interact(AWarHeroCharacter* Interactor);
+	void Interact();
 	// 瞄准进入时
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Interaction")
 	void OnBeginFocus();

@@ -13,7 +13,7 @@ class UOverlay;
 class USizeBox;
 class UTextBlock;
 class AInventoryBase;
-
+class AWarHeroCharacter;
 
 USTRUCT()
 struct FItemDataInSlot
@@ -27,7 +27,9 @@ struct FItemDataInSlot
 	UPROPERTY(VisibleAnywhere, Category="UI")
 	int32 InventoryInSlots = 0; //当前物品数量
 	UPROPERTY(VisibleAnywhere, Category="UI")
-	FGuid CachedInstanceID; //物品的实例ID
+	FName CachedTableRowID;
+	UPROPERTY(VisibleAnywhere, Category="UI")
+	TArray<FGuid> InstanceIDs; //物品的实例ID
 	UPROPERTY(VisibleAnywhere, Category="UI")
 	TObjectPtr<UTexture2D> CachedTexture; //物品的图片
 	UPROPERTY(VisibleAnywhere, Category="UI")
@@ -66,20 +68,20 @@ public:
 	UTextBlock* ItemQuantity;
 	UPROPERTY(VisibleAnywhere, meta=(BindWidget), Category="UI")
 	FItemDataInSlot ItemDataInSlot;
+	UPROPERTY()
+	TObjectPtr<AWarHeroCharacter> CachedCharacter;
 
-	void SetMaxCount();
+	void SetMaxCount(const FGuid& InID);
 	int32 GetMaxCount() const { return ItemDataInSlot.MaxCount; }
 
 
 	virtual void NativeConstruct() override;
 	void AddInventoryToSlot(const FGuid& InID);
 	void RemoveItem();
+	void RemoveItemByInstanceID(const FGuid& InID);
 	void Show();
-	void CleanSlot();
-
-	EEquipmentSlotType GetSlotTypeByInstanceID(const FGuid& InID) const;
-
-	TObjectPtr<UDataTable> GetInventoryDataTable() const;
+	void CleanSlot() const;
+	FGuid GetFirstInstanceID(const FName& TableRowID) const;
 
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;

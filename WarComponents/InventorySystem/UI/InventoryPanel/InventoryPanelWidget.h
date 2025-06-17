@@ -14,6 +14,7 @@ class UBackgroundBlur;
 class UBorder;
 class AInventoryBase;
 class USizeBox;
+class AWarHeroCharacter;
 
 UCLASS()
 class WAR_API UInventoryPanelWidget : public UUserWidget, public IContainerWidgetInterface
@@ -33,6 +34,8 @@ public:
 	TArray<TObjectPtr<UItemSlotWidget>> CurrentInventorySlots;
 	UPROPERTY(VisibleAnywhere, Category="UI")
 	int32 MaxSlots = 72;
+	UPROPERTY()
+	TObjectPtr<AWarHeroCharacter> CachedCharacter;
 
 	virtual void NativeConstruct() override;
 	virtual void InitSlots() override;
@@ -41,4 +44,6 @@ public:
 	virtual void ClearAllSlots() override;
 	virtual void AddItemToSlot(const FGuid& InID) override;
 	virtual int32 GetMaxSlots() const override { return MaxSlots; }
+	UItemSlotWidget* FindSuitableSlot(const FName& TableRowID);
+	UItemSlotWidget* FindFirstEmptySlot();
 };

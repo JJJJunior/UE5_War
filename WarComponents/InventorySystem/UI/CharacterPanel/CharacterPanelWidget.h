@@ -15,6 +15,7 @@ class UItemSlotWidget;
 class UBackgroundBlur;
 class UBorder;
 struct FInventoryInstanceData;
+class AWarHeroCharacter;
 
 
 UCLASS()
@@ -47,7 +48,8 @@ public:
 	USizeBox* RingBox1;
 	UPROPERTY(VisibleAnywhere, meta=(BindWidget), Category="UI")
 	USizeBox* RingBox2;
-
+	UPROPERTY()
+	TObjectPtr<AWarHeroCharacter> CachedCharacter;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UItemSlotWidget> ItemSlotWidgetClass;
 	UPROPERTY(VisibleAnywhere, Category="UI")
@@ -60,6 +62,5 @@ public:
 	virtual void RemoveItemFromSlot(const FGuid& InID) override;
 	virtual void ClearAllSlots() override;
 	virtual void AddItemToSlot(const FGuid& InID) override;
-	TObjectPtr<UDataTable> GetInventoryDataTable() const;
 	virtual int32 GetMaxSlots() const override { return CurrentCharacterSlots.Num(); }
 };

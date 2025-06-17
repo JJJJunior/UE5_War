@@ -27,7 +27,7 @@ protected:
 public:
 	AInventoryBase();
 	// 交互函数
-	virtual void Interact_Implementation(AWarHeroCharacter* Interactor) override;
+	virtual void Interact_Implementation() override;
 	// 瞄准进入时
 	virtual void OnBeginFocus_Implementation() override;
 	// 瞄准离开时
@@ -35,4 +35,5 @@ public:
 	virtual void BeginPlay() override;
 	//关闭碰撞体
 	void DisableInteractionSphere() const;
+	FName GetTableRowID() const { return TableRowID; }
 };

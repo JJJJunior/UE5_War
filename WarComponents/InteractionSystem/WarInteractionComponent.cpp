@@ -6,11 +6,16 @@
 #include "ProjectCollision.h"
 #include "Components/SphereComponent.h"
 #include "Engine/World.h"
+#include "GameInstance/WarGameInstanceSubSystem.h"
+#include "Kismet/GameplayStatics.h"
+#include "WarComponents/InventorySystem/WarInventoryComponent.h"
+#include "WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
+#include "WorldActors/Inventory/InventoryBase.h"
 
 
 UWarInteractionComponent::UWarInteractionComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 	InteractionSphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
 }
 
@@ -28,7 +33,6 @@ void UWarInteractionComponent::BeginPlay()
 	InteractionSphereComponent->SetCollisionObjectType(InteractionComponent);
 	InteractionSphereComponent->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::BeginOnOverlap);
 	InteractionSphereComponent->OnComponentEndOverlap.AddDynamic(this, &ThisClass::EndOnOverlap);
-	InteractionSphereComponent->SetHiddenInGame(false);
 
 	TraceParams.AddIgnoredActor(CachedWarHeroCharacter);
 	TraceParams.bTraceComplex = true; // 是否使用复杂碰撞
@@ -38,7 +42,6 @@ void UWarInteractionComponent::BeginPlay()
 
 void UWarInteractionComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	CrosshairTrace();
 }
 
 
@@ -69,7 +72,6 @@ void UWarInteractionComponent::CrosshairTrace()
 			TraceParams
 		);
 
-
 		if (bHit && Hit.GetActor()->Implements<UInteractableInterface>())
 		{
 			if (CurrentInteractable != Hit.GetActor())
@@ -95,38 +97,22 @@ void UWarInteractionComponent::CrosshairTrace()
 			}
 		}
 	}
-
-	// //主动检测，拾取、开门、按钮
-	// if (AActor* HitActor = HitResult.GetActor())
-	// {
-	// 	if (UWarInteractionComponent* InteractionComp = HitActor->FindComponentByClass<UWarInteractionComponent>())
-	// 	{
-	// 		switch (InteractionComp->InteractionType)
-	// 		{
-	// 		case EInteractionType::Pickup:
-	// 			HandlePickup(HitActor);
-	// 			break;
-	// 		case EInteractionType::OpenDoor:
-	// 			HandleOpenDoor(HitActor);
-	// 			break;
-	// 		case EInteractionType::Equip:
-	// 			HandleEquip(HitActor);
-	// 			break;
-	// 		case EInteractionType::Talk:
-	// 			HandleTalk(HitActor);
-	// 			break;
-	// 		default:
-	// 			break;
-	// 		}
-	// 	}
 }
+
 
 void UWarInteractionComponent::BeginOnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, FString::Printf(TEXT("%s BeginOnOverlap!!!"), *OtherActor->GetName()));
+	AInventoryBase* Inventory = Cast<AInventoryBase>(OtherActor);
+	if (!Inventory) return;
+	if (Inventory->GetTableRowID() == FName())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Inventory Table Row ID is null"));
+		return;
+	}
+	CachedWarHeroCharacter->GetWarInventoryComponent()->GenerateAndAddInventory(Inventory->GetTableRowID());
+	Inventory->Destroy();
 }
 
 void UWarInteractionComponent::EndOnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Purple, FString::Printf(TEXT("%s EndOnOverlap!!!"), *OtherActor->GetName()));
 }

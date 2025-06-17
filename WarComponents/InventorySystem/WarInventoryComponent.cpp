@@ -59,6 +59,12 @@ void UWarInventoryComponent::InitInventories()
 	}
 }
 
+void UWarInventoryComponent::GenerateAndAddInventory(const FName& TableID)
+{
+	FInventoryInstanceData NewItem = GenerateNewWeapon(TableID);
+	AddInventory(NewItem);
+}
+
 //添加到背包
 void UWarInventoryComponent::AddInventory(const FInventoryInstanceData& NewData)
 {
@@ -69,14 +75,15 @@ void UWarInventoryComponent::AddInventory(const FInventoryInstanceData& NewData)
 }
 
 //查找数据
-const FInventoryInstanceData* UWarInventoryComponent::FindInventoryDataByGuid(const FGuid& Guid) const
+const FInventoryInstanceData* UWarInventoryComponent::FindInventoryDataByGuid(const FGuid& InID) const
 {
-	if (const FInventoryInstanceData* FindData = AllInventoryData.Find(Guid))
+	if (const FInventoryInstanceData* FindData = AllInventoryData.Find(InID))
 	{
 		return FindData;
 	}
 	return nullptr;
 }
+
 
 //打开或者关闭背包
 void UWarInventoryComponent::ToggleInventoryUI()
@@ -107,46 +114,32 @@ void UWarInventoryComponent::ToggleCharacterUI()
 	}
 }
 
+//重点方法
+const FWarInventoryRow* UWarInventoryComponent::FindItemRowByGuid(const FGuid& InID) const
+{
+	const FInventoryInstanceData* FindData = FindInventoryDataByGuid(InID);
+	if (!FindData->InstanceID.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("FindData 不存在"));
+		return nullptr;
+	}
 
-// TObjectPtr<AInventoryBase> UWarInventoryComponent::GetSceneActor(const FGuid& InstanceID) const
-// {
-// 	if (!InstanceID.IsValid()) return nullptr;
-//
-// 	// 1. 检查是否存在于Map
-// 	const TObjectPtr<AInventoryBase>* FoundPtr = InstanceToActorMap.Find(InstanceID);
-// 	if (!FoundPtr) // 键不存在
-// 	{
-// 		UE_LOG(LogTemp, Warning, TEXT("GetSceneActor: InstanceID %s 不存在于Map中"), *InstanceID.ToString());
-// 		return nullptr;
-// 	}
-//
-// 	// 2. 检查针有效性
-// 	if (!IsValid(*FoundPtr)) // 指针存在但对象已销毁
-// 	{
-// 		UE_LOG(LogTemp, Warning, TEXT("GetSceneActor: InstanceID %s 的Actor已被销毁"), *InstanceID.ToString());
-// 		return nullptr;
-// 	}
-// 	return *FoundPtr;
-// }
+	const FWarInventoryRow* ItemRow = GetInventoryDataTable()->FindRow<FWarInventoryRow>(FindData->TableRowID, "Find ItemName");
+	if (!ItemRow)
+	{
+		UE_LOG(LogTemp, Error, TEXT("FWarInventoryRow 不存在"));
+		return nullptr;
+	}
+	return ItemRow;
+}
+
 
 //根据名称生成装备到人物身上(ok)
 void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 {
 	if (!InID.IsValid()) return;
 
-	const FInventoryInstanceData* FindData = FindInventoryDataByGuid(InID);
-	if (!FindData->InstanceID.IsValid())
-	{
-		UE_LOG(LogTemp, Error, TEXT("FindData 不存在"));
-		return;
-	}
-
-	FWarInventoryRow* ItemRow = GetInventoryDataTable()->FindRow<FWarInventoryRow>(FindData->TableRowID, "Find ItemName");
-	if (!ItemRow)
-	{
-		UE_LOG(LogTemp, Error, TEXT("FWarInventoryRow 不存在"));
-		return;
-	}
+	const FWarInventoryRow* ItemRow = FindItemRowByGuid(InID);
 
 	//非装备类型不能生成
 	if (ItemRow->InventoryType != EWarInventoryType::Equipment) return;
@@ -220,6 +213,11 @@ void UWarInventoryComponent::EquipInventory(const FGuid& InID)
 
 	//当前包里面没有装备就忽略
 	if (!CurrentInInventories.Contains(InID)) return;
+
+	//不是装备就略过
+	const FWarInventoryRow* ItemRow = FindItemRowByGuid(InID);
+	if (ItemRow->InventoryType != EWarInventoryType::Equipment) return;
+
 	//防止崩溃
 	if (!IsValid(CachedOwnerCharacter) || !CachedOwnerCharacter->GetMesh())
 	{
@@ -271,13 +269,10 @@ bool UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
 	{
 		if (EquippedID == InID) continue;
 
-		const FInventoryInstanceData* EquippedData = FindInventoryDataByGuid(EquippedID);
-		if (!EquippedData) continue;
+		const FWarInventoryRow* EquippedRow = FindItemRowByGuid(InID);
+		if (!EquippedRow) return false;
 
-		const FWarInventoryRow* EquippedRow = GetInventoryDataTable()->FindRow<FWarInventoryRow>(EquippedData->TableRowID, "Find Equipped Item");
-		if (!EquippedRow) continue;
-
-		// 如果已装备物品的 Socket 和当前人物 Socket 相同，返回它的 InstanceID
+		// 如果已装备物品的 Socket 和当前人物 Socket 相同，返回它的 InstanceID		
 		if (EquippedRow->SocketName == CurrentSocketName)
 		{
 			return true;
@@ -292,19 +287,7 @@ TObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInActorMap(const FGu
 {
 	if (!InID.IsValid()) return nullptr;
 
-	const FInventoryInstanceData* EquippedData = FindInventoryDataByGuid(InID);
-	if (!EquippedData)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("EquippedData 不存在"));
-		return nullptr;
-	}
-
-	const FWarInventoryRow* EquippedRow = GetInventoryDataTable()->FindRow<FWarInventoryRow>(EquippedData->TableRowID, "Find Equipped Item");
-	if (!EquippedRow)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("EquippedRow <UNK>"));
-		return nullptr;
-	}
+	const FWarInventoryRow* EquippedRow = FindItemRowByGuid(InID);
 
 	for (const auto& Pair : InstanceToActorMap)
 	{
@@ -328,17 +311,6 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
 	if (!InID.IsValid()) return;
 
 	if (!CurrentEquippedItems.Contains(InID)) return;
-
-	const FInventoryInstanceData* EquippedData = FindInventoryDataByGuid(InID);
-	if (!EquippedData)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("EquippedData 不存在"));
-		return;
-	}
-
-	const FWarInventoryRow* EquippedRow = GetInventoryDataTable()->FindRow<FWarInventoryRow>(EquippedData->TableRowID, "Find Equipped Item");
-	ensureMsgf(EquippedRow, TEXT("FWarInventoryRow is null"));
-	if (!EquippedRow) return;
 
 	// 删除 Character 面板上的装备
 	CurrentEquippedItems.Remove(InID);

@@ -1,6 +1,5 @@
 ﻿#include "CharacterPanelWidget.h"
 #include "Components/SizeBox.h"
-#include "GameInstance/WarGameInstanceSubSystem.h"
 #include "War/WarComponents/InventorySystem/UI/ItemSlotWidget.h"
 #include "War/Characters/Hero/WarHeroCharacter.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
@@ -11,17 +10,7 @@ void UCharacterPanelWidget::NativeConstruct()
 	Super::NativeConstruct();
 	InitSlots();
 	SyncSlots();
-}
-
-TObjectPtr<UDataTable> UCharacterPanelWidget::GetInventoryDataTable() const
-{
-	UWarGameInstanceSubSystem* Subsystem = GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
-	if (!IsValid(Subsystem))
-	{
-		UE_LOG(LogTemp, Error, TEXT("WarSubsystem or its dependencies are invalid."));
-		return nullptr;
-	}
-	return Subsystem->GetCachedWarInventoryDataTable();
+	CachedCharacter = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
 }
 
 
@@ -75,7 +64,7 @@ void UCharacterPanelWidget::ClearAllSlots()
 	{
 		if (UItemSlotWidget* SlotWidget = Elem.Value)
 		{
-			SlotWidget->RemoveItem();
+			SlotWidget->CleanSlot(); // 这里推荐用彻底清空的方法
 		}
 	}
 }
@@ -83,37 +72,35 @@ void UCharacterPanelWidget::ClearAllSlots()
 // 装备同步
 void UCharacterPanelWidget::SyncSlots()
 {
+	if (!CachedCharacter) return;
+
 	ClearAllSlots();
 
-	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
-	ensureMsgf(Character, TEXT("AWarHeroCharacter 不存在"));
-	if (!Character)return;
-
-	for (const auto& Item : Character->GetWarInventoryComponent()->GetCurrentEquippedItems())
+	for (const auto& Item : CachedCharacter->GetWarInventoryComponent()->GetCurrentEquippedItems())
 	{
-		// 直接传递 FInventoryInstanceData
 		AddItemToSlot(Item);
 	}
 }
 
+
 // 设置装备到指定槽位
 void UCharacterPanelWidget::AddItemToSlot(const FGuid& InID)
 {
-	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
-	ensureMsgf(Character, TEXT("AWarHeroCharacter 不存在"));
-	const FInventoryInstanceData* InData = Character->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
-	ensureMsgf(InData, TEXT("FInventoryInstanceData 不存在"));
-	FWarInventoryRow* ItemRow = this->GetInventoryDataTable()->FindRow<FWarInventoryRow>(InData->TableRowID, "Find ItemName");
-	ensureMsgf(ItemRow, TEXT("FWarInventoryRow 不存在"));
-	
-	if (ItemRow->InventoryType == EWarInventoryType::Equipment)
+	if (!CachedCharacter) return;
+
+	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InID);
+	if (!ItemRow || ItemRow->InventoryType != EWarInventoryType::Equipment)
 	{
-		if (UItemSlotWidget** SlotWidgetPtr = CurrentCharacterSlots.Find(ItemRow->EquipmentSlotType))
+		UE_LOG(LogTemp, Warning, TEXT("AddItemToSlot: 非装备类型，忽略。"));
+		return;
+	}
+
+	if (UItemSlotWidget** SlotWidgetPtr = CurrentCharacterSlots.Find(ItemRow->EquipmentSlotType))
+	{
+		if (UItemSlotWidget* SlotWidget = *SlotWidgetPtr)
 		{
-			if (UItemSlotWidget* SlotWidget = *SlotWidgetPtr)
-			{
-				SlotWidget->AddInventoryToSlot(InID);
-			}
+			// 装备槽位只允许一个物品，先清空再放入
+			SlotWidget->AddInventoryToSlot(InID);
 		}
 	}
 }
@@ -121,18 +108,20 @@ void UCharacterPanelWidget::AddItemToSlot(const FGuid& InID)
 // 移除装备
 void UCharacterPanelWidget::RemoveItemFromSlot(const FGuid& InID)
 {
-	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
-	ensureMsgf(Character, TEXT("AWarHeroCharacter 不存在"));
-	const FInventoryInstanceData* InData = Character->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
-	ensureMsgf(InData, TEXT("FInventoryInstanceData 不存在"));
-	FWarInventoryRow* ItemRow = this->GetInventoryDataTable()->FindRow<FWarInventoryRow>(InData->TableRowID, "Find ItemName");
-	ensureMsgf(ItemRow, TEXT("FWarInventoryRow 不存在"));
+	if (!CachedCharacter) return;
+
+	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InID);
+	if (!ItemRow || ItemRow->InventoryType != EWarInventoryType::Equipment)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromSlot: 非装备类型，忽略。"));
+		return;
+	}
 
 	if (UItemSlotWidget** SlotWidgetPtr = CurrentCharacterSlots.Find(ItemRow->EquipmentSlotType))
 	{
 		if (UItemSlotWidget* SlotWidget = *SlotWidgetPtr)
 		{
-			SlotWidget->RemoveItem();
+			SlotWidget->RemoveItemByInstanceID(InID);
 		}
 	}
 }

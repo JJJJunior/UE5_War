@@ -58,11 +58,16 @@ void UQuickPanelWidget::RemoveItemFromSlot(const FGuid& InID)
 {
 	for (auto& InSlot : QuickSlots)
 	{
-		//如果slot是有东西的,并且格子里存在的ID和传入的ID一致
-		if (!InSlot->ItemDataInSlot.bIsEmpty && InSlot->ItemDataInSlot.CachedInstanceID == InID)
+		if (InSlot->ItemDataInSlot.bIsEmpty)
 		{
-			InSlot->RemoveItem();
-			break; // 一般背包物品不会重复，可以移除后立即退出
+			continue;
+		}
+		// 判断这个格子的 InstanceIDs 里是否包含目标实例 ID
+		if (InSlot->ItemDataInSlot.InstanceIDs.Contains(InID))
+		{
+			// 执行移除
+			InSlot->RemoveItemByInstanceID(InID);
+			break; // 找到立即退出
 		}
 	}
 }
@@ -84,7 +89,7 @@ void UQuickPanelWidget::AddItemToSlot(const FGuid& InID)
 	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
 	ensureMsgf(Character, TEXT("AWarHeroCharacter 不存在"));
 	const FInventoryInstanceData* InData = Character->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
-	
+
 	for (auto& InSlot : QuickSlots)
 	{
 		if (InData->InventoryType == EWarInventoryType::Skill || InData->InventoryType == EWarInventoryType::Consumable && InSlot->ItemDataInSlot.bIsEmpty)

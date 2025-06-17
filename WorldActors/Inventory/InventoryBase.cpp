@@ -1,5 +1,4 @@
 ﻿#include "InventoryBase.h"
-
 #include "Components/SphereComponent.h"
 
 
@@ -16,8 +15,8 @@ AInventoryBase::AInventoryBase()
 
 void AInventoryBase::BeginPlay()
 {
+	//不要乱删，否则无法destory
 	Super::BeginPlay();
-	InteractionSphere->SetHiddenInGame(false);
 }
 
 void AInventoryBase::DisableInteractionSphere() const
@@ -26,18 +25,22 @@ void AInventoryBase::DisableInteractionSphere() const
 }
 
 
-void AInventoryBase::Interact_Implementation(AWarHeroCharacter* Interactor)
+void AInventoryBase::Interact_Implementation()
 {
 	// 例如：拾取物品
-	UE_LOG(LogTemp, Warning, TEXT("拾取物品...."));
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("拾取物品....."));
 }
 
+
+//鼠标指向做事
 void AInventoryBase::OnBeginFocus_Implementation()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("OnBeginFocus_Implementation...."));
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("OnBeginFocus_Implementation....."));
+
 }
 
+//鼠标离开做事
 void AInventoryBase::OnEndFocus_Implementation()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("OnEndFocus_Implementation...."));
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("OnEndFocus_Implementation....."));
 }
