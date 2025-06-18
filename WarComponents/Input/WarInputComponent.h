@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "EnhancedInputComponent.h"
-#include "DataAssets/Input/DataAsset_InputConfig.h"
+#include "War/DataManager/ConfigData/DataAsset_InputConfig.h"
 #include "WarInputComponent.generated.h"
 
 

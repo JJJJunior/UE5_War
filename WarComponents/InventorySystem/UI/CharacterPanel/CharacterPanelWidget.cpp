@@ -1,5 +1,6 @@
 ﻿#include "CharacterPanelWidget.h"
 #include "Components/SizeBox.h"
+#include "Tools/MyLog.h"
 #include "War/WarComponents/InventorySystem/UI/ItemSlotWidget.h"
 #include "War/Characters/Hero/WarHeroCharacter.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
@@ -58,7 +59,7 @@ void UCharacterPanelWidget::InitSlots()
 			SlotBox->AddChild(SlotWidget);
 			CurrentCharacterSlots.Emplace(SlotType, SlotWidget);
 			// 可选：Debug 显示
-			// UE_LOG(LogTemp, Warning, TEXT("装备槽位 [%d] 已初始化."), static_cast<uint8>(SlotType));
+			// print(TEXT("装备槽位 [%d] 已初始化."), static_cast<uint8>(SlotType));
 		}
 		index++;
 	}
@@ -98,7 +99,7 @@ void UCharacterPanelWidget::AddItemToSlot(const FGuid& InID)
 	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InID);
 	if (!ItemRow || ItemRow->InventoryType != EWarInventoryType::Equipment)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AddItemToSlot: 非装备类型，忽略。"));
+		print(TEXT("AddItemToSlot: 非装备类型，忽略。"));
 		return;
 	}
 
@@ -120,7 +121,7 @@ void UCharacterPanelWidget::RemoveItemFromSlot(const FGuid& InID)
 	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InID);
 	if (!ItemRow || ItemRow->InventoryType != EWarInventoryType::Equipment)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromSlot: 非装备类型，忽略。"));
+		print(TEXT("RemoveItemFromSlot: 非装备类型，忽略。"));
 		return;
 	}
 

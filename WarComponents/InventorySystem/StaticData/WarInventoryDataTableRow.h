@@ -2,24 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
-#include "WarComponents/InventorySystem/DynamicData/InventoryInstanceData.h"
+#include "War/DataManager/EnumTypes/WarEnumTypes.h"
 #include "WarInventoryDataTableRow.generated.h"
 
-
-UENUM(BlueprintType)
-enum class EEquipmentSlotType:uint8
-{
-	None = 0,
-	Head,
-	Body,
-	Neck,
-	Legs,
-	Footer,
-	LeftHand,
-	RightHand,
-	Ring1,
-	Ring2,
-};
 
 class AInventoryBase;
 class UAnimMontage;

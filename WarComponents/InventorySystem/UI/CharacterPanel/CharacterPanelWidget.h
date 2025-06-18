@@ -4,7 +4,6 @@
 #include "Blueprint/UserWidget.h"
 #include "WarComponents/InventorySystem/Interface/ContainerWidgetInterface.h"
 #include "War/WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
-#include "War/WarComponents/InventorySystem/DynamicData/InventoryInstanceData.h"
 #include "CharacterPanelWidget.generated.h"
 
 
@@ -12,9 +11,7 @@ class UCanvasPanel;
 class UWrapBox;
 class USizeBox;
 class UItemSlotWidget;
-class UBackgroundBlur;
 class UBorder;
-struct FInventoryInstanceData;
 class AWarHeroCharacter;
 
 

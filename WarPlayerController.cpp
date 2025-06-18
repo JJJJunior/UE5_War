@@ -3,6 +3,7 @@
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
 #include "Characters/Hero/WarHeroCharacter.h"
+#include "Tools/MyLog.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
 
 void AWarPlayerController::SetupInputComponent()
@@ -29,7 +30,7 @@ void AWarPlayerController::BeginPlay()
 
 void AWarPlayerController::RefreshInputMode(bool bInventoryVisible, bool bCharacterVisible)
 {
-	UE_LOG(LogTemp, Warning, TEXT("bInventoryVisible %d  bCharacterVisible %d"), bInventoryVisible, bCharacterVisible);
+	//print(TEXT("bInventoryVisible %d  bCharacterVisible %d"), bInventoryVisible, bCharacterVisible);
 	if (!bInventoryVisible && !bCharacterVisible)
 	{
 		SetShowMouseCursor(false);
@@ -37,7 +38,7 @@ void AWarPlayerController::RefreshInputMode(bool bInventoryVisible, bool bCharac
 		InputMode.SetConsumeCaptureMouseDown(false);
 		SetInputMode(InputMode);
 
-		UE_LOG(LogTemp, Warning, TEXT("Input Mode: GameOnly"));
+		// print(TEXT("Input Mode: GameOnly"));
 	}
 	else
 	{
@@ -46,6 +47,6 @@ void AWarPlayerController::RefreshInputMode(bool bInventoryVisible, bool bCharac
 		InputMode.SetHideCursorDuringCapture(false);
 		SetInputMode(InputMode);
 
-		UE_LOG(LogTemp, Warning, TEXT("Input Mode: GameAndUI"));
+		// print(TEXT("Input Mode: GameAndUI"));
 	}
 }

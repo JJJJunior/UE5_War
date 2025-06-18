@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "War/WarComponents/InventorySystem/Interface/ContainerWidgetInterface.h"
-#include "War/WarComponents/InventorySystem/DynamicData/InventoryInstanceData.h"
 #include "InventoryPanelWidget.generated.h"
 
 

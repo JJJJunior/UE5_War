@@ -4,6 +4,7 @@
 #include "War/WarComponents/InventorySystem/UI/ItemSlotWidget.h"
 #include "war/WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "Misc/StringBuilder.h"
+#include "Tools/MyLog.h"
 
 void UInventoryPanelWidget::NativeConstruct()
 {
@@ -12,7 +13,7 @@ void UInventoryPanelWidget::NativeConstruct()
 	CachedCharacter = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
 	if (!CachedCharacter.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("CachedCharacter 弱指针无效"));
+		print(TEXT("CachedCharacter 弱指针无效"));
 		return;
 	}
 	InitSlots();
@@ -73,7 +74,7 @@ void UInventoryPanelWidget::AddItemToSlot(const FGuid& InID)
 	const FInventoryInstanceData* FindData = CachedCharacter->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
 	if (!FindData)
 	{
-		UE_LOG(LogTemp, Error, TEXT("AddItem: 未找到物品数据！"));
+		print(TEXT("AddItem: 未找到物品数据！"));
 		return;
 	}
 
@@ -96,7 +97,7 @@ void UInventoryPanelWidget::AddItemToSlot(const FGuid& InID)
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("背包已满！"));
+			print(TEXT("背包已满！"));
 		}
 	}
 }

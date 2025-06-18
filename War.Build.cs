@@ -19,9 +19,7 @@ public class War : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"GameplayTags",
-			"SQLiteCore",
-			"SQLiteSupport",
+			"GameplayTags"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

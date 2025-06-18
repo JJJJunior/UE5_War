@@ -7,21 +7,24 @@
 class UGameConfigData;
 class UTexture2D;
 class UWarDataManager;
+class UWarPersistentSystem;
 
 UCLASS()
 class WAR_API UWarGameInstanceSubSystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
+protected:
+	UPROPERTY()
+	TObjectPtr<UWarPersistentSystem> WarPersistentSystem;
+
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	TObjectPtr<UDataTable> GetCachedWarInventoryDataTable() const;
 	TObjectPtr<UDataTable> GetCachedWarAbilityDataTable() const;
 	TSoftObjectPtr<UMaterialInstance> GetOutLineMaterial() const;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ConfigData")
-	TObjectPtr<UGameConfigData> GameConfigData;
 	UPROPERTY()
-	TWeakObjectPtr<UWarDataManager> WarDataManager;
-
-	FORCEINLINE TWeakObjectPtr<UWarDataManager> GetWarDataManager() const { return WarDataManager; }
+	TObjectPtr<UGameConfigData> GameConfigData;
+	UFUNCTION(BlueprintCallable)
+	UWarPersistentSystem* GetWarPersistentSystem() const { return WarPersistentSystem; }
 };

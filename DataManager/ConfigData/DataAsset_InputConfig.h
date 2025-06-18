@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "War/Types/WarInputActionType.h"
+#include "War/DataManager/ConfigData/WarInputActionType.h"
 #include "DataAsset_InputConfig.generated.h"
 
 

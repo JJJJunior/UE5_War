@@ -2,12 +2,13 @@
 #include "Characters/Hero/WarHeroCharacter.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
-#include "GameInstance/WarGameInstanceSubSystem.h"
+#include "Tools/MyLog.h"
+#include "War/GameManager/GameInstance/WarGameInstanceSubSystem.h"
 #include "War/WorldActors/Inventory/InventoryBase.h"
 #include "war/WarComponents/InventorySystem/UI/InventoryPanel/InventoryPanelWidget.h"
 #include "war/WarComponents/InventorySystem/UI/CharacterPanel/CharacterPanelWidget.h"
 #include "War/WarComponents/InventorySystem/UI/RootPanel/RootPanelWidget.h"
-#include "War/WarComponents/InventorySystem/DynamicData/InventoryInstanceData.h"
+#include "War/DataManager/DynamicData/InventoryInstanceData.h"
 
 
 UWarInventoryComponent::UWarInventoryComponent()
@@ -22,7 +23,7 @@ void UWarInventoryComponent::BeginPlay()
 	CachedOwnerCharacter = CastChecked<AWarCharacterBase>(GetOwner());
 	if (!CachedOwnerCharacter.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("CachedOwnerCharacter 弱指针无效"));
+		print(TEXT("CachedOwnerCharacter 弱指针无效"));
 		return;
 	}
 	InitRootUI();
@@ -35,7 +36,7 @@ TObjectPtr<UDataTable> UWarInventoryComponent::GetInventoryDataTable() const
 	UWarGameInstanceSubSystem* Subsystem = GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
 	if (!IsValid(Subsystem))
 	{
-		UE_LOG(LogTemp, Error, TEXT("WarSubsystem or its dependencies are invalid."));
+		print(TEXT("WarSubsystem or its dependencies are invalid."));
 		return nullptr;
 	}
 	return Subsystem->GetCachedWarInventoryDataTable();
@@ -88,14 +89,14 @@ void UWarInventoryComponent::AddInventory(const FInventoryInstanceData& NewData)
 {
 	if (!NewData.InstanceID.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AddInventory 无效ID %s"), *NewData.InstanceID.ToString());
+		print(TEXT("AddInventory 无效ID %s"), *NewData.InstanceID.ToString());
 		return;
 	}
 	AllInventoryData.Add(NewData.InstanceID, NewData);
 	CurrentInInventories.Add(NewData.InstanceID);
 	//同步UI显示
 	RootPanelWidget->InventoryPanelWidget->AddItemToSlot(NewData.InstanceID);
-	UE_LOG(LogTemp, Warning, TEXT("当前总物品数量 AllInventoryData %d"), AllInventoryData.Num());
+	print(TEXT("当前总物品数量 AllInventoryData %d"), AllInventoryData.Num());
 }
 
 //查找数据
@@ -103,7 +104,7 @@ const FInventoryInstanceData* UWarInventoryComponent::FindInventoryDataByGuid(co
 {
 	if (!InID.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("FindInventoryDataByGuid 拿到无效ID %s"), *InID.ToString());
+		print(TEXT("FindInventoryDataByGuid 拿到无效ID %s"), *InID.ToString());
 		return nullptr;
 	}
 
@@ -150,14 +151,14 @@ const FWarInventoryRow* UWarInventoryComponent::FindItemRowByGuid(const FGuid& I
 	const FInventoryInstanceData* FindData = FindInventoryDataByGuid(InID);
 	if (!FindData->InstanceID.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("FindData 不存在"));
+		print(TEXT("FindData 不存在"));
 		return nullptr;
 	}
 
 	const FWarInventoryRow* ItemRow = GetInventoryDataTable()->FindRow<FWarInventoryRow>(FindData->TableRowID, "Find ItemName");
 	if (!ItemRow)
 	{
-		UE_LOG(LogTemp, Error, TEXT("FWarInventoryRow 不存在"));
+		print(TEXT("FWarInventoryRow 不存在"));
 		return nullptr;
 	}
 	return ItemRow;
@@ -194,7 +195,7 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 			UClass* LoadedClass = ItemRow->InventorySoftClass.Get();
 			if (!LoadedClass)
 			{
-				UE_LOG(LogTemp, Error, TEXT("UWarInventoryComponent::SpawnInventory | LoadedClass is nullptr"));
+				print(TEXT("UWarInventoryComponent::SpawnInventory | LoadedClass is nullptr"));
 				return;
 			}
 			TObjectPtr<AInventoryBase> InventoryActor = GetWorld()->SpawnActor<AInventoryBase>(LoadedClass, SpawnLocation, SpawnRotation, SpawnParameters);
@@ -211,7 +212,7 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 		UClass* LoadedClass = ItemRow->InventorySoftClass.Get();
 		if (!LoadedClass)
 		{
-			UE_LOG(LogTemp, Error, TEXT("UWarInventoryComponent::SpawnInventory | LoadedClass is nullptr"));
+			print(TEXT("UWarInventoryComponent::SpawnInventory | LoadedClass is nullptr"));
 			return;
 		}
 		//生成世界物品
@@ -226,14 +227,14 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 
 	if (InstanceToActorMap.Contains(InID))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SpawnInventory 当前InstanceToActorMap %s 已经存储指针"), *InID.ToString());
+		print(TEXT("SpawnInventory 当前InstanceToActorMap %s 已经存储指针"), *InID.ToString());
 	}
 	//存放装备
 	CurrentEquippedItems.Add(InID);
 	//同步UI显示
 	RootPanelWidget->CharacterPanelWidget->AddItemToSlot(InID);
 
-	UE_LOG(LogTemp, Warning, TEXT("SpawnInventory 了装备 %s"), *InID.ToString());
+	print(TEXT("SpawnInventory 了装备 %s"), *InID.ToString());
 }
 
 //从背包拿装备穿身上
@@ -261,7 +262,7 @@ void UWarInventoryComponent::EquipInventory(const FGuid& InID)
 		{
 			if (Pair.Value.IsValid() && Pair.Value == Inventory)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("InID 有同类型装备已经穿戴 InstanceToActorMap ID：%s"), *Pair.Key.ToString());
+				print(TEXT("InID 有同类型装备已经穿戴 InstanceToActorMap ID：%s"), *Pair.Key.ToString());
 				UnequipInventory(Pair.Key);
 			}
 		}
@@ -360,7 +361,7 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
 	TWeakObjectPtr<AInventoryBase> InventoryPtr = FindActorInActorMap(InID);
 	if (!InventoryPtr.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("InventoryPtr 无效"));
+		print(TEXT("InventoryPtr 无效"));
 		return;
 	}
 	// 先解除挂载
@@ -368,7 +369,7 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
 	// 销毁世界的实例
 	InventoryPtr->Destroy();
 	InstanceToActorMap.Remove(InID);
-	UE_LOG(LogTemp, Warning, TEXT("UnequipInventory 装备 %s"), *InID.ToString());
+	print(TEXT("UnequipInventory 装备 %s"), *InID.ToString());
 
 	ShowCurrentInventories();
 }
@@ -376,9 +377,9 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
 
 void UWarInventoryComponent::ShowCurrentInventories() const
 {
-	UE_LOG(LogTemp, Warning, TEXT("| Inventory Type        | Count |"));
-	UE_LOG(LogTemp, Warning, TEXT("|-----------------------|-------|"));
-	UE_LOG(LogTemp, Warning, TEXT("| CurrentEquippedItems  | %5d |"), CurrentEquippedItems.Num());
-	UE_LOG(LogTemp, Warning, TEXT("| CurrentInInventories  | %5d |"), CurrentInInventories.Num());
-	UE_LOG(LogTemp, Warning, TEXT("| AllInventoryData      | %5d |"), AllInventoryData.Num());
+	print(TEXT("| Inventory Type        | Count |"));
+	print(TEXT("|-----------------------|-------|"));
+	print(TEXT("| CurrentEquippedItems  | %5d |"), CurrentEquippedItems.Num());
+	print(TEXT("| CurrentInInventories  | %5d |"), CurrentInInventories.Num());
+	print(TEXT("| AllInventoryData      | %5d |"), AllInventoryData.Num());
 }

@@ -4,6 +4,7 @@
 #include "War/WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "Components/SizeBox.h"
 #include "Components/HorizontalBox.h"
+#include "Tools/MyLog.h"
 
 
 class UWarGameInstanceSubSystem;
@@ -15,7 +16,7 @@ void UQuickPanelWidget::NativeConstruct()
 	CachedCharacter = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
 	if (!CachedCharacter.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("CachedCharacter 弱指针无效"));
+		print(TEXT("CachedCharacter 弱指针无效"));
 		return;
 	}
 

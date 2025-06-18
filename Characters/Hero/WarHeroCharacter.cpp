@@ -6,13 +6,15 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
 #include "InputActionValue.h"
-#include "DataAssets/GameConfigData.h"
-#include "GameInstance/WarGameInstanceSubSystem.h"
-#include "GameTags/WarGameTags.h"
+#include "War/DataManager/ConfigData/GameConfigData.h"
+#include "War/GameManager/GameInstance/WarGameInstanceSubSystem.h"
+#include "War/GameManager/GameTags/WarGameTags.h"
 #include "Kismet/GameplayStatics.h"
+#include "Tools/MyLog.h"
 #include "WarComponents/Input/WarInputComponent.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "WarComponents/InteractionSystem/WarInteractionComponent.h"
+#include "War/WarComponents/PersistentSystem/WarPersistentSystem.h"
 
 
 AWarHeroCharacter::AWarHeroCharacter()
@@ -50,15 +52,22 @@ AWarHeroCharacter::AWarHeroCharacter()
 void AWarHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	WarSubSystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
+
+	if (!WarSubSystem.IsValid())
+	{
+		print(TEXT("WarSubSystem is invalid"));
+		return;
+	}
 	checkf(WarInventoryComponent, TEXT("WarInventoryComponent is NULL"));
 	checkf(WarInteractionComponent, TEXT("WarInteractionComponent is NULL"));
 
-	if (UWarGameInstanceSubSystem* SubSystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>())
-	{
-		CameraBoom->SocketOffset = SubSystem->GameConfigData->FollowCameraOffset;
-	}
+	CameraBoom->SocketOffset = WarSubSystem->GameConfigData->FollowCameraOffset;
 
-	UE_LOG(LogTemp, Warning, TEXT("当前玩家的Guid: %s"), *this->GetActorInstanceGuid().ToString());
+	print(TEXT("当前玩家的Guid: %s"), *this->GetActorInstanceGuid().ToString());
+
+	//自动加载存档
+	this->GetWarSubSystem()->GetWarPersistentSystem()->LoadGame();
 }
 
 

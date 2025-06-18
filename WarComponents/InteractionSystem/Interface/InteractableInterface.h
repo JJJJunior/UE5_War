@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Characters/Hero/WarHeroCharacter.h"
 #include "UObject/Interface.h"
 #include "InteractableInterface.generated.h"
 

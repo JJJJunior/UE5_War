@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "War/Types/WarDataTableType.h"
+#include "War/DataManager/StaticData/WarDataTableType.h"
 #include "WarAbilityComponent.generated.h"
 
 

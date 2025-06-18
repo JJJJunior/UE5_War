@@ -1,8 +1,6 @@
 ﻿#pragma once
-
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Interface/InteractableInterface.h"
 #include "War/WarComponents/InteractionSystem/DataType/WarInteractionData.h"
 #include "WarInteractionComponent.generated.h"
 
@@ -10,6 +8,7 @@
 class AWarHeroCharacter;
 class AWarPlayerController;
 class AInventoryBase;
+class USphereComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class WAR_API UWarInteractionComponent : public UActorComponent

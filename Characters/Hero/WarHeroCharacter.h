@@ -16,7 +16,7 @@ class UWarInventoryComponent;
 class UInventoryPanelWidget;
 class UWarInteractionComponent;
 class USphereComponent;
-
+class UWarGameInstanceSubSystem;
 
 UCLASS(Blueprintable)
 class AWarHeroCharacter : public AWarCharacterBase
@@ -73,7 +73,8 @@ protected:
 	TObjectPtr<UWarInventoryComponent> WarInventoryComponent;
 	UPROPERTY()
 	TObjectPtr<UWarInteractionComponent> WarInteractionComponent;
-
+	UPROPERTY()
+	TWeakObjectPtr<UWarGameInstanceSubSystem> WarSubSystem;
 
 public:
 	AWarHeroCharacter();
@@ -89,4 +90,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UWarInteractionComponent* GetWarInteractionComponent() const { return WarInteractionComponent; }
 
+	TWeakObjectPtr<UWarGameInstanceSubSystem> GetWarSubSystem() const { return WarSubSystem; }
+
+	UFUNCTION(BlueprintCallable)
+	UWarGameInstanceSubSystem* GetWarSubSystemInBP() const { return WarSubSystem.Get(); }
 };

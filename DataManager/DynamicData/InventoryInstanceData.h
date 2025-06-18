@@ -1,23 +1,12 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "War/DataManager/EnumTypes/WarEnumTypes.h"
 #include "InventoryInstanceData.generated.h"
 
 
 class UInventoryExtraData;
 class AInventoryBase;
-
-
-UENUM(BlueprintType)
-enum class EWarInventoryType: uint8
-{
-	None = 0,
-	Equipment, // 装备 (武器、护甲等可穿戴/使用的物品)
-	QuestItem, // 任务物品 (专门用于任务的物品)
-	Consumable, // 消耗品 (使用后会消失的物品，如药水、食物)
-	Material, // 材料 (用于合成的原材料)
-	Skill //技能用于施法
-};
 
 
 USTRUCT(Blueprintable)
@@ -54,7 +43,7 @@ struct FInventoryCreateParams
 	GENERATED_BODY()
 	//基础参数
 	UPROPERTY(EditAnywhere)
-	FGuid InstanceID = FGuid::NewGuid();
+	FGuid InstanceID = FGuid();
 	UPROPERTY(EditAnywhere)
 	FGuid PlayerID = FGuid();
 	UPROPERTY(EditAnywhere)
@@ -103,7 +92,7 @@ struct FInventoryInstanceData
 
 		//--- 基础数据初始化 ---
 		// 如果调用方未提供InstanceID，自动生成
-		NewInstance.InstanceID = Params.InstanceID;
+		NewInstance.InstanceID = Params.InstanceID.IsValid() ? Params.InstanceID : FGuid::NewGuid();
 		NewInstance.PlayerID = Params.PlayerID;
 		NewInstance.TableRowID = Params.TableRowID;
 		NewInstance.Count = FMath::Max(0, Params.Count); // 确保至少为0

@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "War/WarComponents/InventorySystem/DynamicData/InventoryInstanceData.h"
+#include "War/DataManager/DynamicData/InventoryInstanceData.h"
 #include "WarInventoryComponent.generated.h"
 
 

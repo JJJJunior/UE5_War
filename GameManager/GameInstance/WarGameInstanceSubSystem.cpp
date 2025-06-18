@@ -1,6 +1,7 @@
 ﻿#include "WarGameInstanceSubSystem.h"
-#include "DataAssets/GameConfigData.h"
-#include "WarDataManager/WarDataManager.h"
+#include "War/DataManager/ConfigData/GameConfigData.h"
+#include "War/WarComponents/PersistentSystem/WarPersistentSystem.h"
+
 
 void UWarGameInstanceSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -10,15 +11,10 @@ void UWarGameInstanceSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 	GameConfigData = SoftConfigData.LoadSynchronous();
 	checkf(GameConfigData, TEXT("GameConfigData is NULL"))
 
-	WarDataManager = NewObject<UWarDataManager>();
-	if (!WarDataManager.IsValid())
+	WarPersistentSystem = NewObject<UWarPersistentSystem>(this);
+	if (!IsValid(WarPersistentSystem))
 	{
-		UE_LOG(LogTemp, Error, TEXT("WarDataManager is NULL"));
-		return;
-	}
-	if (!WarDataManager->OpenDatabase())
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to open WarDataManager"));
+		UE_LOG(LogTemp, Error, TEXT("WarPersistentSystem is NULL"));
 		return;
 	}
 }

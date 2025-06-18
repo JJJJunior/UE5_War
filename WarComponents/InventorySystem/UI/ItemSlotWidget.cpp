@@ -3,6 +3,7 @@
 #include "CharacterPanel/CharacterPanelWidget.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Tools/MyLog.h"
 #include "WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
 #include "War/Characters/Hero/WarHeroCharacter.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
@@ -14,7 +15,7 @@ void UItemSlotWidget::NativeConstruct()
 	CachedCharacter = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
 	if (!CachedCharacter.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("CachedCharacter 弱指针无效"));
+		print(TEXT("CachedCharacter 弱指针无效"));
 		return;
 	}
 	Show();
@@ -27,7 +28,7 @@ void UItemSlotWidget::AddInventoryToSlot(const FGuid& InID)
 	const FInventoryInstanceData* FindData = CachedCharacter->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
 	if (!FindData)
 	{
-		UE_LOG(LogTemp, Error, TEXT("AddInventoryToSlot: 未找到物品数据！"));
+		print(TEXT("AddInventoryToSlot: 未找到物品数据！"));
 		return;
 	}
 
@@ -41,14 +42,14 @@ void UItemSlotWidget::AddInventoryToSlot(const FGuid& InID)
 	// 判断是否为同类型物品
 	if (ItemDataInSlot.CachedTableRowID != FindData->TableRowID)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AddInventoryToSlot: 物品类型不一致！"));
+		print(TEXT("AddInventoryToSlot: 物品类型不一致！"));
 		return;
 	}
 
 	// 判断格子是否已满
 	if (ItemDataInSlot.InventoryInSlots >= ItemDataInSlot.MaxCount)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UInventorySlotWidget::AddInventoryToSlot | 格子满了!"));
+		print(TEXT("UInventorySlotWidget::AddInventoryToSlot | 格子满了!"));
 		return;
 	}
 
@@ -57,7 +58,7 @@ void UItemSlotWidget::AddInventoryToSlot(const FGuid& InID)
 	ItemDataInSlot.InventoryInSlots++;
 	ItemDataInSlot.bIsEmpty = false;
 
-	UE_LOG(LogTemp, Warning, TEXT("AddInventoryToSlot | %s | 当前：%d | 最大：%d!"), *InID.ToString(), ItemDataInSlot.InstanceIDs.Num(), ItemDataInSlot.MaxCount);
+	//UE_LOG(LogTemp, Warning, TEXT("AddInventoryToSlot | %s | 当前：%d | 最大：%d!"), *InID.ToString(), ItemDataInSlot.InstanceIDs.Num(), ItemDataInSlot.MaxCount);
 	Show();
 }
 
@@ -68,7 +69,7 @@ void UItemSlotWidget::SetMaxCount(const FGuid& InID)
 	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InID);
 	if (!ItemRow)
 	{
-		UE_LOG(LogTemp, Error, TEXT("SetMaxCount: 找不到物品行数据！"));
+		print(TEXT("SetMaxCount: 找不到物品行数据！"));
 		ItemDataInSlot.MaxCount = 1;
 		return;
 	}
@@ -94,7 +95,7 @@ void UItemSlotWidget::RemoveItem()
 {
 	if (ItemDataInSlot.InventoryInSlots <= 0 || ItemDataInSlot.InstanceIDs.Num() == 0)
 	{
-		// UE_LOG(LogTemp, Warning, TEXT("格子已空！"));
+		// print(TEXT("格子已空！"));
 		return;
 	}
 
@@ -118,13 +119,13 @@ void UItemSlotWidget::RemoveItemByInstanceID(const FGuid& InID)
 {
 	if (ItemDataInSlot.InventoryInSlots <= 0 || ItemDataInSlot.InstanceIDs.Num() == 0)
 	{
-		// UE_LOG(LogTemp, Warning, TEXT("格子已空！"));
+		// print(TEXT("格子已空！"));
 		return;
 	}
 
 	if (!ItemDataInSlot.InstanceIDs.Contains(InID))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("未找到该物品实例ID！"));
+		print(TEXT("未找到该物品实例ID！"));
 		return;
 	}
 
@@ -297,6 +298,6 @@ void UItemSlotWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPoi
 	FGuid InstanceID = GetFirstInstanceID(ItemDataInSlot.CachedTableRowID);
 	if (ItemDataInSlot.InventoryInSlots > 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s %s %d"), *InstanceID.ToString(), *ItemDataInSlot.ParentPanel, ItemDataInSlot.EquipmentSlotType);
+		print(TEXT("%s %s %d"), *InstanceID.ToString(), *ItemDataInSlot.ParentPanel, ItemDataInSlot.EquipmentSlotType);
 	}
 }
