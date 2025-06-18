@@ -8,8 +8,13 @@
 void UInventoryPanelWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	checkf(ItemSlotWidgetClass, TEXT("ItemSlotWidgetClass 没有配置"));
 	CachedCharacter = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
-	check(CachedCharacter);
+	if (!CachedCharacter.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("CachedCharacter 弱指针无效"));
+		return;
+	}
 	InitSlots();
 	SyncSlots();
 }
@@ -17,10 +22,7 @@ void UInventoryPanelWidget::NativeConstruct()
 // 初始化背包槽位
 void UInventoryPanelWidget::InitSlots()
 {
-	checkf(ItemSlotWidgetClass, TEXT("ItemSlotWidgetClass 没有配置"));
-
 	if (!InventoryWrapBox) return;
-
 	for (int32 i = 0; i < MaxSlots; i++)
 	{
 		if (UItemSlotWidget* InventorySlot = CreateWidget<UItemSlotWidget>(GetWorld(), ItemSlotWidgetClass))
@@ -41,10 +43,10 @@ void UInventoryPanelWidget::InitSlots()
 void UInventoryPanelWidget::SyncSlots()
 {
 	ClearAllSlots();
-
-	if (AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwningPlayerPawn()))
+	const TSet<FGuid>& CurrentInventories = CachedCharacter->GetWarInventoryComponent()->GetCurrentInInventories();
+	if (CurrentInventories.Num() > 0)
 	{
-		for (const auto& Inventory : Character->GetWarInventoryComponent()->GetCurrentInInventories())
+		for (const auto& Inventory : CurrentInventories)
 		{
 			AddItemToSlot(Inventory);
 		}

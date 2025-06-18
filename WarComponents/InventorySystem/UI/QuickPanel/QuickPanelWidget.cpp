@@ -11,6 +11,14 @@ class UWarGameInstanceSubSystem;
 void UQuickPanelWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	checkf(ItemSlotWidgetClass, TEXT("ItemSlotWidgetClass 没有配置"));
+	CachedCharacter = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
+	if (!CachedCharacter.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("CachedCharacter 弱指针无效"));
+		return;
+	}
+
 	InitSlots();
 	SyncSlots();
 }
@@ -18,13 +26,7 @@ void UQuickPanelWidget::NativeConstruct()
 
 void UQuickPanelWidget::InitSlots()
 {
-	checkf(ItemSlotWidgetClass, TEXT("ItemSlotWidgetClass 没有配置"));
-
 	if (!QuickSizeBox) return;
-
-	// 先确保可见
-	QuickSizeBox->SetVisibility(ESlateVisibility::Visible);
-	this->SetVisibility(ESlateVisibility::Visible);
 
 	for (int32 i = 0; i < MaxSlots; i++)
 	{
@@ -44,10 +46,10 @@ void UQuickPanelWidget::InitSlots()
 void UQuickPanelWidget::SyncSlots()
 {
 	ClearAllSlots();
-
-	if (AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwningPlayerPawn()))
+	const TSet<FGuid>& CurrentQuickItems = CachedCharacter->GetWarInventoryComponent()->GetCurrentInQuickItems();
+	if (CurrentQuickItems.Num() > 0)
 	{
-		for (const auto& InQuickItem : Character->GetWarInventoryComponent()->GetCurrentInQuickItems())
+		for (const auto& InQuickItem : CurrentQuickItems)
 		{
 			AddItemToSlot(InQuickItem);
 		}
@@ -86,9 +88,7 @@ void UQuickPanelWidget::ClearAllSlots()
 //检查类型添加
 void UQuickPanelWidget::AddItemToSlot(const FGuid& InID)
 {
-	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
-	ensureMsgf(Character, TEXT("AWarHeroCharacter 不存在"));
-	const FInventoryInstanceData* InData = Character->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
+	const FInventoryInstanceData* InData = CachedCharacter->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
 
 	for (auto& InSlot : QuickSlots)
 	{

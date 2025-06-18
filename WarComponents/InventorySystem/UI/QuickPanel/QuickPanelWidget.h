@@ -9,6 +9,7 @@ class USizeBox;
 class UBorder;
 class UHorizontalBox;
 class UItemSlotWidget;
+class AWarHeroCharacter;
 
 UCLASS()
 class WAR_API UQuickPanelWidget : public UUserWidget, public IContainerWidgetInterface
@@ -27,7 +28,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category="UI")
 	TArray<TObjectPtr<UItemSlotWidget>> QuickSlots;
 	UPROPERTY(VisibleAnywhere, Category="UI")
-	int32 MaxSlots = 7;
+	int32 MaxSlots = 8;
+	UPROPERTY()
+	TWeakObjectPtr<AWarHeroCharacter> CachedCharacter;
 
 public:
 	virtual void InitSlots() override;

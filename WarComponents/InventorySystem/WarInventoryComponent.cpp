@@ -16,6 +16,20 @@ UWarInventoryComponent::UWarInventoryComponent()
 }
 
 
+void UWarInventoryComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	CachedOwnerCharacter = CastChecked<AWarCharacterBase>(GetOwner());
+	if (!CachedOwnerCharacter.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("CachedOwnerCharacter 弱指针无效"));
+		return;
+	}
+	InitRootUI();
+	InitInventories();
+}
+
+
 TObjectPtr<UDataTable> UWarInventoryComponent::GetInventoryDataTable() const
 {
 	UWarGameInstanceSubSystem* Subsystem = GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
@@ -25,17 +39,6 @@ TObjectPtr<UDataTable> UWarInventoryComponent::GetInventoryDataTable() const
 		return nullptr;
 	}
 	return Subsystem->GetCachedWarInventoryDataTable();
-}
-
-
-void UWarInventoryComponent::BeginPlay()
-{
-	Super::BeginPlay();
-	CachedOwnerCharacter = CastChecked<AWarCharacterBase>(GetOwner());
-	check(CachedOwnerCharacter);
-
-	InitRootUI();
-	InitInventories();
 }
 
 
@@ -50,33 +53,60 @@ void UWarInventoryComponent::InitRootUI()
 //初始化装备数据主库
 void UWarInventoryComponent::InitInventories()
 {
-	const TArray<FName> WeaponList = {FName("Katana"), FName("KatanaScabbard"), FName("Katana"), FName("KatanaScabbard")};
+	const TArray<FName>& WeaponList = {FName("Katana"), FName("KatanaScabbard"), FName("Katana"), FName("KatanaScabbard")};
 
 	for (int32 i = 0; i < WeaponList.Num(); i++)
 	{
-		FInventoryInstanceData NewItem = GenerateNewWeapon(WeaponList[i]);
+		FInventoryCreateParams Params;
+		Params.PlayerID = CachedOwnerCharacter->GetActorInstanceGuid();
+		Params.Count = 1;
+		Params.TableRowID = WeaponList[i];
+		Params.InventoryType = EWarInventoryType::Equipment;
+		Params.Amount = 10;
+		Params.Durability = 100;
+		FInventoryInstanceData NewItem = FInventoryInstanceData::CreateInventoryData(Params);
 		AddInventory(NewItem);
 	}
 }
 
+//根据TableID创建物品
 void UWarInventoryComponent::GenerateAndAddInventory(const FName& TableID)
 {
-	FInventoryInstanceData NewItem = GenerateNewWeapon(TableID);
+	FInventoryCreateParams Params;
+	Params.PlayerID = CachedOwnerCharacter->GetActorInstanceGuid();
+	Params.Count = 1;
+	Params.TableRowID = TableID;
+	Params.InventoryType = EWarInventoryType::Equipment;
+	Params.Amount = 10;
+	Params.Durability = 100;
+	FInventoryInstanceData NewItem = FInventoryInstanceData::CreateInventoryData(Params);
 	AddInventory(NewItem);
 }
 
 //添加到背包
 void UWarInventoryComponent::AddInventory(const FInventoryInstanceData& NewData)
 {
+	if (!NewData.InstanceID.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AddInventory 无效ID %s"), *NewData.InstanceID.ToString());
+		return;
+	}
 	AllInventoryData.Add(NewData.InstanceID, NewData);
 	CurrentInInventories.Add(NewData.InstanceID);
 	//同步UI显示
 	RootPanelWidget->InventoryPanelWidget->AddItemToSlot(NewData.InstanceID);
+	UE_LOG(LogTemp, Warning, TEXT("当前总物品数量 AllInventoryData %d"), AllInventoryData.Num());
 }
 
 //查找数据
 const FInventoryInstanceData* UWarInventoryComponent::FindInventoryDataByGuid(const FGuid& InID) const
 {
+	if (!InID.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FindInventoryDataByGuid 拿到无效ID %s"), *InID.ToString());
+		return nullptr;
+	}
+
 	if (const FInventoryInstanceData* FindData = AllInventoryData.Find(InID))
 	{
 		return FindData;
@@ -149,8 +179,8 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 
 	//异步生成装备加载class的武器类
 	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.Owner = CachedOwnerCharacter;
-	SpawnParameters.Instigator = CachedOwnerCharacter;
+	SpawnParameters.Owner = CachedOwnerCharacter.Get();
+	SpawnParameters.Instigator = CachedOwnerCharacter.Get();
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 	SpawnParameters.TransformScaleMethod = ESpawnActorScaleMethod::MultiplyWithRoot;
 	FVector SpawnLocation = FVector::ZeroVector;
@@ -219,22 +249,24 @@ void UWarInventoryComponent::EquipInventory(const FGuid& InID)
 	if (ItemRow->InventoryType != EWarInventoryType::Equipment) return;
 
 	//防止崩溃
-	if (!IsValid(CachedOwnerCharacter) || !CachedOwnerCharacter->GetMesh())
+	if (!CachedOwnerCharacter.IsValid() || !CachedOwnerCharacter->GetMesh())
 	{
 		return;
 	}
 
-	if (TObjectPtr<AInventoryBase> Inventory = FindActorInActorMap(InID))
+	TWeakObjectPtr<AInventoryBase> Inventory = FindActorInActorMap(InID);
+	if (Inventory.IsValid())
 	{
 		for (const auto& Pair : InstanceToActorMap)
 		{
-			if (Pair.Value && Pair.Value == Inventory)
+			if (Pair.Value.IsValid() && Pair.Value == Inventory)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("InID 有同类型装备已经穿戴 InstanceToActorMap ID：%s"), *Pair.Key.ToString());
 				UnequipInventory(Pair.Key);
 			}
 		}
 	}
+
 	//生成物品
 	SpawnInventory(InID);
 
@@ -259,7 +291,7 @@ bool UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
 	if (!InID.IsValid()) return false;
 
 	// 获取当前人物的 Socket 名称
-	if (!CachedOwnerCharacter || !CachedOwnerCharacter->GetMesh())
+	if (!CachedOwnerCharacter.IsValid() || !CachedOwnerCharacter->GetMesh())
 	{
 		return false;
 	}
@@ -283,7 +315,7 @@ bool UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
 
 
 // 根据当前人物的 Socket 名称，检查是否已存在挂载的装备，返回该装备的 Actor 指针（无则返回 nullptr）
-TObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInActorMap(const FGuid& InID) const
+TWeakObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInActorMap(const FGuid& InID) const
 {
 	if (!InID.IsValid()) return nullptr;
 
@@ -291,7 +323,7 @@ TObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInActorMap(const FGu
 
 	for (const auto& Pair : InstanceToActorMap)
 	{
-		if (!Pair.Value) continue;
+		if (!Pair.Value.IsValid()) continue;
 
 		const USceneComponent* Parent = Pair.Value->GetAttachParentActor() ? Pair.Value->GetAttachParentActor()->GetRootComponent() : nullptr;
 		if (!Parent) continue;
@@ -325,8 +357,8 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
 	RootPanelWidget->InventoryPanelWidget->AddItemToSlot(InID);
 
 	// 销毁世界 Socket 上的装备
-	TObjectPtr<AInventoryBase> InventoryPtr = FindActorInActorMap(InID);
-	if (!InventoryPtr)
+	TWeakObjectPtr<AInventoryBase> InventoryPtr = FindActorInActorMap(InID);
+	if (!InventoryPtr.IsValid())
 	{
 		UE_LOG(LogTemp, Error, TEXT("InventoryPtr 无效"));
 		return;
@@ -339,17 +371,6 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
 	UE_LOG(LogTemp, Warning, TEXT("UnequipInventory 装备 %s"), *InID.ToString());
 
 	ShowCurrentInventories();
-}
-
-//调用工厂方法创建武器
-FInventoryInstanceData UWarInventoryComponent::GenerateNewWeapon(const FName& InInventoryName)
-{
-	FInventoryInstanceData NewWeaponData;
-	NewWeaponData.InstanceID = FGuid::NewGuid();
-	NewWeaponData.TableRowID = InInventoryName;
-	NewWeaponData.InventoryType = EWarInventoryType::Equipment;
-	NewWeaponData.ExtraData = UWeaponInstanceData::CreateWeaponInstance(this, 100.f, 10.f);
-	return NewWeaponData;
 }
 
 

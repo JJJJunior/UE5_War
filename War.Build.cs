@@ -20,13 +20,15 @@ public class War : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"GameplayTags",
+			"SQLiteCore",
+			"SQLiteSupport",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[]
 		{
-			"War"
+			"War",
 		});
 
 		// Uncomment if you are using Slate UI

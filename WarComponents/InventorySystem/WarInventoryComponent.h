@@ -14,6 +14,7 @@ class UUserWidget;
 class URootPanelWidget;
 class UInventoryPanelWidget;
 class UCharacterPanelWidget;
+struct FWarInventoryRow;
 
 //广播通知UI打开状态
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUIStateChanged, bool, bCharacterUIVisible, bool, bInventoryUIVisible);
@@ -30,8 +31,8 @@ class WAR_API UWarInventoryComponent : public UActorComponent
 	}
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MySpawnData")
-	TObjectPtr<AWarCharacterBase> CachedOwnerCharacter;
+	UPROPERTY()
+	TWeakObjectPtr<AWarCharacterBase> CachedOwnerCharacter;
 	TObjectPtr<UDataTable> GetInventoryDataTable() const;
 	//初始化UI
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="MySpawnData")
@@ -50,7 +51,7 @@ protected:
 	TSet<FGuid> CurrentEquippedItems;
 	// ID -> 场景 Actor 映射表（用 WeakPtr 防止内存泄漏）
 	UPROPERTY()
-	TMap<FGuid, TObjectPtr<AInventoryBase>> InstanceToActorMap;
+	TMap<FGuid, TWeakObjectPtr<AInventoryBase>> InstanceToActorMap;
 	//快捷栏
 	UPROPERTY()
 	TSet<FGuid> CurrentInQuickItems;
@@ -67,18 +68,15 @@ protected:
 	void SpawnInventory(const FGuid& InID);
 	bool HasInventoryInSocket(const FGuid& InID) const;
 	// 查询当前装备的场景 Actor
-	TObjectPtr<AInventoryBase> FindActorInActorMap(const FGuid& InID) const;
+	TWeakObjectPtr<AInventoryBase> FindActorInActorMap(const FGuid& InID) const;
 	void ShowCurrentInventories() const;
-
-	//根据tablename生成装备放入背包
-	FInventoryInstanceData GenerateNewWeapon(const FName& InInventoryName);
 
 public:
 	UWarInventoryComponent();
 	virtual void BeginPlay() override;
-	TSet<FGuid> GetCurrentEquippedItems() const { return CurrentEquippedItems; }
-	TSet<FGuid> GetCurrentInInventories() const { return CurrentInInventories; }
-	TSet<FGuid> GetCurrentInQuickItems() const { return CurrentInQuickItems; }
+	const TSet<FGuid>& GetCurrentEquippedItems() const { return CurrentEquippedItems; }
+	const TSet<FGuid>& GetCurrentInInventories() const { return CurrentInInventories; }
+	const TSet<FGuid>& GetCurrentInQuickItems() const { return CurrentInQuickItems; }
 	void ToggleInventoryUI();
 	void ToggleCharacterUI();
 	void InitInventories();

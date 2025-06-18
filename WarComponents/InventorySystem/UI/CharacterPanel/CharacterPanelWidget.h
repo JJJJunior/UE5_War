@@ -49,7 +49,7 @@ public:
 	UPROPERTY(VisibleAnywhere, meta=(BindWidget), Category="UI")
 	USizeBox* RingBox2;
 	UPROPERTY()
-	TObjectPtr<AWarHeroCharacter> CachedCharacter;
+	TWeakObjectPtr<AWarHeroCharacter> CachedCharacter;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UItemSlotWidget> ItemSlotWidgetClass;
 	UPROPERTY(VisibleAnywhere, Category="UI")

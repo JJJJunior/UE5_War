@@ -6,6 +6,7 @@
 
 class UGameConfigData;
 class UTexture2D;
+class UWarDataManager;
 
 UCLASS()
 class WAR_API UWarGameInstanceSubSystem : public UGameInstanceSubsystem
@@ -19,4 +20,8 @@ public:
 	TSoftObjectPtr<UMaterialInstance> GetOutLineMaterial() const;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ConfigData")
 	TObjectPtr<UGameConfigData> GameConfigData;
+	UPROPERTY()
+	TWeakObjectPtr<UWarDataManager> WarDataManager;
+
+	FORCEINLINE TWeakObjectPtr<UWarDataManager> GetWarDataManager() const { return WarDataManager; }
 };

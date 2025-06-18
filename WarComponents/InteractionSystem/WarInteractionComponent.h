@@ -21,16 +21,15 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MyConfig")
 	EInteractionType InteractionType = EInteractionType::None;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MyConfig")
-	TObjectPtr<AWarHeroCharacter> CachedWarHeroCharacter;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MyConfig")
-	TObjectPtr<AWarPlayerController> CachedWarPlayerController;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Inventory")
 	TObjectPtr<USphereComponent> InteractionSphereComponent;
-
+	// 焦点射线检测，当前可交互物体
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="MyConfig")
 	float CrosshairTraceDistance = 3000.f;
-	// 焦点射线检测，当前可交互物体
+	UPROPERTY()
+	TWeakObjectPtr<AWarHeroCharacter> CachedWarHeroCharacter;
+	UPROPERTY()
+	TWeakObjectPtr<AWarPlayerController> CachedWarPlayerController;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MyConfig")
 	AActor* CurrentInteractable = nullptr;
 	FVector CameraOffset = FVector::ZeroVector;

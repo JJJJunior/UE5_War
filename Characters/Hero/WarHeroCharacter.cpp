@@ -15,7 +15,6 @@
 #include "WarComponents/InteractionSystem/WarInteractionComponent.h"
 
 
-
 AWarHeroCharacter::AWarHeroCharacter()
 {
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -45,7 +44,6 @@ AWarHeroCharacter::AWarHeroCharacter()
 
 	WarInventoryComponent = CreateDefaultSubobject<UWarInventoryComponent>(TEXT("WarInventoryComponent"));
 	WarInteractionComponent = CreateDefaultSubobject<UWarInteractionComponent>(TEXT("WarInteractionComponent"));
-	
 }
 
 
@@ -59,6 +57,8 @@ void AWarHeroCharacter::BeginPlay()
 	{
 		CameraBoom->SocketOffset = SubSystem->GameConfigData->FollowCameraOffset;
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("当前玩家的Guid: %s"), *this->GetActorInstanceGuid().ToString());
 }
 
 

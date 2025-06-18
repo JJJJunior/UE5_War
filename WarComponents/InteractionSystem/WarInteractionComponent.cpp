@@ -6,10 +6,7 @@
 #include "ProjectCollision.h"
 #include "Components/SphereComponent.h"
 #include "Engine/World.h"
-#include "GameInstance/WarGameInstanceSubSystem.h"
-#include "Kismet/GameplayStatics.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
-#include "WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
 #include "WorldActors/Inventory/InventoryBase.h"
 
 
@@ -26,15 +23,25 @@ void UWarInteractionComponent::BeginPlay()
 
 	CachedWarHeroCharacter = Cast<AWarHeroCharacter>(GetOwner());
 	CachedWarPlayerController = Cast<AWarPlayerController>(CachedWarHeroCharacter->Controller);
-	check(CachedWarHeroCharacter);
-	check(CachedWarPlayerController);
+
+	if (!CachedWarHeroCharacter.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("CachedWarHeroCharacter 弱指针无效"));
+		return;
+	}
+
+	if (!CachedWarPlayerController.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("CachedWarPlayerController 弱指针无效"));
+		return;
+	}
 
 	InteractionSphereComponent->AttachToComponent(CachedWarHeroCharacter->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	InteractionSphereComponent->SetCollisionObjectType(InteractionComponent);
 	InteractionSphereComponent->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::BeginOnOverlap);
 	InteractionSphereComponent->OnComponentEndOverlap.AddDynamic(this, &ThisClass::EndOnOverlap);
 
-	TraceParams.AddIgnoredActor(CachedWarHeroCharacter);
+	TraceParams.AddIgnoredActor(CachedWarHeroCharacter.Get());
 	TraceParams.bTraceComplex = true; // 是否使用复杂碰撞
 	TraceParams.bReturnPhysicalMaterial = false; //是否返回物理材质
 }
@@ -48,7 +55,6 @@ void UWarInteractionComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 //用于准星碰撞检测
 void UWarInteractionComponent::CrosshairTrace()
 {
-	if (!CachedWarPlayerController) return;
 	// 获取屏幕中心点
 	int32 ViewportSizeX, ViewportSizeY;
 	CachedWarPlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);

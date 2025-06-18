@@ -8,17 +8,24 @@
 void UCharacterPanelWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	checkf(ItemSlotWidgetClass, TEXT("ItemSlotWidgetClass 没有配置"));
+
+	CachedCharacter = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
+	if (!CachedCharacter.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("CachedCharacter 弱指针无效"));
+		return;
+	}
+
 	InitSlots();
 	SyncSlots();
-	CachedCharacter = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
 }
 
 
 // 初始化所有装备槽
 void UCharacterPanelWidget::InitSlots()
 {
-	checkf(ItemSlotWidgetClass, TEXT("ItemSlotWidgetClass 没有配置"));
-
 	const TMap<EEquipmentSlotType, USizeBox*> SlotBoxMap = {
 		{EEquipmentSlotType::Head, HeadBox},
 		{EEquipmentSlotType::Body, BodyBox},
@@ -72,7 +79,7 @@ void UCharacterPanelWidget::ClearAllSlots()
 // 装备同步
 void UCharacterPanelWidget::SyncSlots()
 {
-	if (!CachedCharacter) return;
+	if (!CachedCharacter.IsValid()) return;
 
 	ClearAllSlots();
 
@@ -86,7 +93,7 @@ void UCharacterPanelWidget::SyncSlots()
 // 设置装备到指定槽位
 void UCharacterPanelWidget::AddItemToSlot(const FGuid& InID)
 {
-	if (!CachedCharacter) return;
+	if (!CachedCharacter.IsValid()) return;
 
 	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InID);
 	if (!ItemRow || ItemRow->InventoryType != EWarInventoryType::Equipment)
@@ -108,7 +115,7 @@ void UCharacterPanelWidget::AddItemToSlot(const FGuid& InID)
 // 移除装备
 void UCharacterPanelWidget::RemoveItemFromSlot(const FGuid& InID)
 {
-	if (!CachedCharacter) return;
+	if (!CachedCharacter.IsValid()) return;
 
 	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InID);
 	if (!ItemRow || ItemRow->InventoryType != EWarInventoryType::Equipment)

@@ -35,7 +35,7 @@ public:
 	UPROPERTY(VisibleAnywhere, Category="UI")
 	int32 MaxSlots = 72;
 	UPROPERTY()
-	TObjectPtr<AWarHeroCharacter> CachedCharacter;
+	TWeakObjectPtr<AWarHeroCharacter> CachedCharacter;
 
 	virtual void NativeConstruct() override;
 	virtual void InitSlots() override;

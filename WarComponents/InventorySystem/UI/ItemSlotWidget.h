@@ -69,7 +69,7 @@ public:
 	UPROPERTY(VisibleAnywhere, meta=(BindWidget), Category="UI")
 	FItemDataInSlot ItemDataInSlot;
 	UPROPERTY()
-	TObjectPtr<AWarHeroCharacter> CachedCharacter;
+	TWeakObjectPtr<AWarHeroCharacter> CachedCharacter;
 
 	void SetMaxCount(const FGuid& InID);
 	int32 GetMaxCount() const { return ItemDataInSlot.MaxCount; }

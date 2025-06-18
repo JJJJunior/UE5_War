@@ -12,7 +12,11 @@ void UItemSlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	CachedCharacter = Cast<AWarHeroCharacter>(GetOwningPlayerPawn());
-	check(CachedCharacter);
+	if (!CachedCharacter.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("CachedCharacter 弱指针无效"));
+		return;
+	}
 	Show();
 }
 
@@ -53,11 +57,7 @@ void UItemSlotWidget::AddInventoryToSlot(const FGuid& InID)
 	ItemDataInSlot.InventoryInSlots++;
 	ItemDataInSlot.bIsEmpty = false;
 
-	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InID);
-	if (ItemRow)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AddInventoryToSlot | %s | 当前：%d | 最大：%d!"), *ItemRow->Name, ItemDataInSlot.InstanceIDs.Num(), ItemDataInSlot.MaxCount);
-	}
+	UE_LOG(LogTemp, Warning, TEXT("AddInventoryToSlot | %s | 当前：%d | 最大：%d!"), *InID.ToString(), ItemDataInSlot.InstanceIDs.Num(), ItemDataInSlot.MaxCount);
 	Show();
 }
 
@@ -94,7 +94,7 @@ void UItemSlotWidget::RemoveItem()
 {
 	if (ItemDataInSlot.InventoryInSlots <= 0 || ItemDataInSlot.InstanceIDs.Num() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("格子已空！"));
+		// UE_LOG(LogTemp, Warning, TEXT("格子已空！"));
 		return;
 	}
 
@@ -118,7 +118,7 @@ void UItemSlotWidget::RemoveItemByInstanceID(const FGuid& InID)
 {
 	if (ItemDataInSlot.InventoryInSlots <= 0 || ItemDataInSlot.InstanceIDs.Num() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("格子已空！"));
+		// UE_LOG(LogTemp, Warning, TEXT("格子已空！"));
 		return;
 	}
 
@@ -190,7 +190,7 @@ void UItemSlotWidget::Show()
 }
 
 
-void UItemSlotWidget::CleanSlot()const
+void UItemSlotWidget::CleanSlot() const
 {
 	ItemQuantity->SetText(FText::FromString(TEXT("")));
 	ItemImage->SetBrushFromTexture(nullptr);
@@ -238,7 +238,7 @@ bool UItemSlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
 	{
 		const FGuid& InstanceID = SourceSlot->GetFirstInstanceID(SourceSlot->ItemDataInSlot.CachedTableRowID);
 		const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InstanceID);
-		
+
 		// 拖入的是角色装备面板
 		if (ItemDataInSlot.ParentPanel == "Character" && SourceSlot->ItemDataInSlot.ParentPanel == "Inventory")
 		{
