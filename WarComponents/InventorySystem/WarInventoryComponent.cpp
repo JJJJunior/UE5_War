@@ -1,21 +1,20 @@
 ﻿#include "WarInventoryComponent.h"
 #include "Characters/Hero/WarHeroCharacter.h"
+#include "DataManager/WarDataManager.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
 #include "Tools/MyLog.h"
-#include "War/GameManager/GameInstance/WarGameInstanceSubSystem.h"
+#include "GameInstance/WarGameInstanceSubSystem.h"
 #include "War/WorldActors/Inventory/InventoryBase.h"
 #include "war/WarComponents/InventorySystem/UI/InventoryPanel/InventoryPanelWidget.h"
 #include "war/WarComponents/InventorySystem/UI/CharacterPanel/CharacterPanelWidget.h"
 #include "War/WarComponents/InventorySystem/UI/RootPanel/RootPanelWidget.h"
-#include "War/DataManager/DynamicData/InventoryInstanceData.h"
 
 
 UWarInventoryComponent::UWarInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-
 
 void UWarInventoryComponent::BeginPlay()
 {
@@ -27,21 +26,7 @@ void UWarInventoryComponent::BeginPlay()
 		return;
 	}
 	InitRootUI();
-	InitInventories();
 }
-
-
-TObjectPtr<UDataTable> UWarInventoryComponent::GetInventoryDataTable() const
-{
-	UWarGameInstanceSubSystem* Subsystem = GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
-	if (!IsValid(Subsystem))
-	{
-		print(TEXT("WarSubsystem or its dependencies are invalid."));
-		return nullptr;
-	}
-	return Subsystem->GetCachedWarInventoryDataTable();
-}
-
 
 void UWarInventoryComponent::InitRootUI()
 {
@@ -51,68 +36,96 @@ void UWarInventoryComponent::InitRootUI()
 	RootPanelWidget->AddToViewport();
 }
 
-//初始化装备数据主库
-void UWarInventoryComponent::InitInventories()
-{
-	const TArray<FName>& WeaponList = {FName("Katana"), FName("KatanaScabbard"), FName("Katana"), FName("KatanaScabbard")};
 
-	for (int32 i = 0; i < WeaponList.Num(); i++)
+bool UWarInventoryComponent::GenerateItemToBagAndSaved(const FName& TableID)
+{
+	bool bSuccess = false;
+
+	if (!TableID.IsValid())
 	{
-		FInventoryCreateParams Params;
-		Params.PlayerID = CachedOwnerCharacter->GetActorInstanceGuid();
-		Params.Count = 1;
-		Params.TableRowID = WeaponList[i];
-		Params.InventoryType = EWarInventoryType::Equipment;
-		Params.Amount = 10;
-		Params.Durability = 100;
-		FInventoryInstanceData NewItem = FInventoryInstanceData::CreateInventoryData(Params);
-		AddInventory(NewItem);
+		print(TEXT("TableID %s"), *TableID.ToString())
+		return false;
 	}
+
+	const FWarInventoryRow* FindItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, TableID);
+	if (!FindItemRow) return false;
+
+	switch (FindItemRow->InventoryType)
+	{
+	case EWarInventoryType::Weapon:
+		{
+			const TOptional<FItemInBagData> Weapon = UWarDataManager::CreateWeapon(this, TableID, CachedOwnerCharacter->GetPersistentActorID());
+			if (Weapon.IsSet())
+			{
+				//添加背包
+				AddInventory(Weapon.GetValue());
+				bSuccess = true;
+			}
+		}
+		break;
+	case EWarInventoryType::Armor:
+		{
+			const TOptional<FItemInBagData> Armor = UWarDataManager::CreateArmor(this, TableID, CachedOwnerCharacter->GetPersistentActorID());
+			if (Armor.IsSet())
+			{
+				AddInventory(Armor.GetValue());
+				bSuccess = true;
+			}
+		}
+		break;
+	case EWarInventoryType::Consumable:
+		{
+			const TOptional<FItemInBagData> Consumable = UWarDataManager::CreateConsumable(this, TableID, CachedOwnerCharacter->GetPersistentActorID());
+			if (Consumable.IsSet())
+			{
+				AddInventory(Consumable.GetValue());
+				bSuccess = true;
+			}
+		}
+		break;
+	case EWarInventoryType::QuestItem:
+		{
+			const TOptional<FItemInBagData> QuestItem = UWarDataManager::CreateQuestItem(this, TableID, CachedOwnerCharacter->GetPersistentActorID());
+			if (QuestItem.IsSet())
+			{
+				AddInventory(QuestItem.GetValue());
+				bSuccess = true;
+			}
+		}
+		break;
+	case EWarInventoryType::Skill:
+		{
+			const TOptional<FItemInBagData> Skill = UWarDataManager::CreateSkill(this, TableID, CachedOwnerCharacter->GetPersistentActorID());
+			if (Skill.IsSet())
+			{
+				AddInventory(Skill.GetValue());
+				bSuccess = true;
+			}
+		}
+		break;
+	case EWarInventoryType::Material:
+	case EWarInventoryType::None:
+	default:
+		bSuccess = false;
+		break;
+	}
+
+	return bSuccess;
 }
 
-//根据TableID创建物品
-void UWarInventoryComponent::GenerateAndAddInventory(const FName& TableID)
-{
-	FInventoryCreateParams Params;
-	Params.PlayerID = CachedOwnerCharacter->GetActorInstanceGuid();
-	Params.Count = 1;
-	Params.TableRowID = TableID;
-	Params.InventoryType = EWarInventoryType::Equipment;
-	Params.Amount = 10;
-	Params.Durability = 100;
-	FInventoryInstanceData NewItem = FInventoryInstanceData::CreateInventoryData(Params);
-	AddInventory(NewItem);
-}
 
 //添加到背包
-void UWarInventoryComponent::AddInventory(const FInventoryInstanceData& NewData)
+void UWarInventoryComponent::AddInventory(const FItemInBagData& InBagData)
 {
-	if (!NewData.InstanceID.IsValid())
+	if (!InBagData.InstanceID.IsValid())
 	{
-		print(TEXT("AddInventory 无效ID %s"), *NewData.InstanceID.ToString());
+		print(TEXT("AddInventory 无效ID %s"), *InBagData.InstanceID.ToString());
 		return;
 	}
-	AllInventoryData.Add(NewData.InstanceID, NewData);
-	CurrentInInventories.Add(NewData.InstanceID);
+	Inventories.Add(InBagData);
 	//同步UI显示
-	RootPanelWidget->InventoryPanelWidget->AddItemToSlot(NewData.InstanceID);
-	print(TEXT("当前总物品数量 AllInventoryData %d"), AllInventoryData.Num());
-}
-
-//查找数据
-const FInventoryInstanceData* UWarInventoryComponent::FindInventoryDataByGuid(const FGuid& InID) const
-{
-	if (!InID.IsValid())
-	{
-		print(TEXT("FindInventoryDataByGuid 拿到无效ID %s"), *InID.ToString());
-		return nullptr;
-	}
-
-	if (const FInventoryInstanceData* FindData = AllInventoryData.Find(InID))
-	{
-		return FindData;
-	}
-	return nullptr;
+	RootPanelWidget->InventoryPanelWidget->AddItemToSlot(InBagData);
+	// print(TEXT("添加了新物品 %s"), *InBagData.InstanceID.ToString());
 }
 
 
@@ -145,38 +158,17 @@ void UWarInventoryComponent::ToggleCharacterUI()
 	}
 }
 
-//重点方法
-const FWarInventoryRow* UWarInventoryComponent::FindItemRowByGuid(const FGuid& InID) const
-{
-	const FInventoryInstanceData* FindData = FindInventoryDataByGuid(InID);
-	if (!FindData->InstanceID.IsValid())
-	{
-		print(TEXT("FindData 不存在"));
-		return nullptr;
-	}
-
-	const FWarInventoryRow* ItemRow = GetInventoryDataTable()->FindRow<FWarInventoryRow>(FindData->TableRowID, "Find ItemName");
-	if (!ItemRow)
-	{
-		print(TEXT("FWarInventoryRow 不存在"));
-		return nullptr;
-	}
-	return ItemRow;
-}
-
 
 //根据名称生成装备到人物身上(ok)
-void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
+void UWarInventoryComponent::SpawnInventory(const FItemInBagData& InBagData)
 {
-	if (!InID.IsValid()) return;
-
-	const FWarInventoryRow* ItemRow = FindItemRowByGuid(InID);
+	if (!InBagData.InstanceID.IsValid()) return;
 
 	//非装备类型不能生成
-	if (ItemRow->InventoryType != EWarInventoryType::Equipment) return;
+	if (InBagData.InventoryType != EWarInventoryType::Armor && InBagData.InventoryType != EWarInventoryType::Weapon) return;
 
 	//当前Socket中存在指针就略过
-	if (HasInventoryInSocket(InID)) return;
+	if (HasInventoryInSocket(InBagData)) return;
 
 	//异步生成装备加载class的武器类
 	FActorSpawnParameters SpawnParameters;
@@ -187,10 +179,12 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 	FVector SpawnLocation = FVector::ZeroVector;
 	FRotator SpawnRotation = FRotator::ZeroRotator;
 
-	if (!ItemRow->InventorySoftClass.IsValid())
+	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, InBagData.TableRowID);
+
+	if (ItemRow->InventorySoftClass.IsValid())
 	{
 		FStreamableManager& Streamable = UAssetManager::GetStreamableManager();
-		Streamable.RequestAsyncLoad(ItemRow->InventorySoftClass.ToSoftObjectPath(), [this,SpawnLocation, SpawnRotation,SpawnParameters,ItemRow,InID]()
+		Streamable.RequestAsyncLoad(ItemRow->InventorySoftClass.ToSoftObjectPath(), [this,SpawnLocation, SpawnRotation,SpawnParameters,ItemRow,InBagData]()
 		{
 			UClass* LoadedClass = ItemRow->InventorySoftClass.Get();
 			if (!LoadedClass)
@@ -199,12 +193,19 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 				return;
 			}
 			TObjectPtr<AInventoryBase> InventoryActor = GetWorld()->SpawnActor<AInventoryBase>(LoadedClass, SpawnLocation, SpawnRotation, SpawnParameters);
-			//移入socket
-			InventoryActor->AttachToComponent(CachedOwnerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ItemRow->SocketName);
+			if (!IsValid(InventoryActor))
+			{
+				print_err(TEXT("装备InventoryActor 指针丢失"));
+				return;
+			}
 			//消除interaction的碰撞体
 			InventoryActor->DisableInteractionSphere();
-			// 缓存指针
-			InstanceToActorMap.Emplace(InID, InventoryActor);
+			//移入socket
+			if (InventoryActor->AttachToComponent(CachedOwnerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ItemRow->SocketName))
+			{
+				// 缓存指针
+				SavedInventoryInSlots.Emplace(InBagData.InstanceID, InventoryActor);
+			}
 		});
 	}
 	else
@@ -212,84 +213,77 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InID)
 		UClass* LoadedClass = ItemRow->InventorySoftClass.Get();
 		if (!LoadedClass)
 		{
-			print(TEXT("UWarInventoryComponent::SpawnInventory | LoadedClass is nullptr"));
+			print_err(TEXT("LoadedClass is nullptr"));
 			return;
 		}
 		//生成世界物品
 		TObjectPtr<AInventoryBase> InventoryActor = GetWorld()->SpawnActor<AInventoryBase>(LoadedClass, SpawnLocation, SpawnRotation, SpawnParameters);
-		//移入socket
-		InventoryActor->AttachToComponent(CachedOwnerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ItemRow->SocketName);
+		if (!InventoryActor)
+		{
+				print_err(TEXT("装备InventoryActor 指针丢失"));
+			return;
+		}
 		//消除interaction的碰撞体
 		InventoryActor->DisableInteractionSphere();
-		// 缓存指针
-		InstanceToActorMap.Emplace(InID, InventoryActor);
+		//移入socket
+		if (InventoryActor->AttachToComponent(CachedOwnerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ItemRow->SocketName))
+		{
+			//消除interaction的碰撞体
+			InventoryActor->DisableInteractionSphere();
+			// 缓存指针
+			SavedInventoryInSlots.Emplace(InBagData.InstanceID, InventoryActor);
+		}
 	}
-
-	if (InstanceToActorMap.Contains(InID))
-	{
-		print(TEXT("SpawnInventory 当前InstanceToActorMap %s 已经存储指针"), *InID.ToString());
-	}
-	//存放装备
-	CurrentEquippedItems.Add(InID);
-	//同步UI显示
-	RootPanelWidget->CharacterPanelWidget->AddItemToSlot(InID);
-
-	print(TEXT("SpawnInventory 了装备 %s"), *InID.ToString());
 }
 
 //从背包拿装备穿身上
-void UWarInventoryComponent::EquipInventory(const FGuid& InID)
+void UWarInventoryComponent::EquipInventory(const FItemInBagData& InBagData)
 {
-	if (!InID.IsValid()) return;
-
-	//当前包里面没有装备就忽略
-	if (!CurrentInInventories.Contains(InID)) return;
-
-	//不是装备就略过
-	const FWarInventoryRow* ItemRow = FindItemRowByGuid(InID);
-	if (ItemRow->InventoryType != EWarInventoryType::Equipment) return;
-
-	//防止崩溃
-	if (!CachedOwnerCharacter.IsValid() || !CachedOwnerCharacter->GetMesh())
+	if (InBagData.InstanceID.IsValid() && Inventories.Contains(InBagData))
 	{
-		return;
-	}
+		//不是装备就略过
+		if (InBagData.InventoryType != EWarInventoryType::Armor && InBagData.InventoryType != EWarInventoryType::Weapon) return;
 
-	TWeakObjectPtr<AInventoryBase> Inventory = FindActorInActorMap(InID);
-	if (Inventory.IsValid())
-	{
-		for (const auto& Pair : InstanceToActorMap)
+		//防止崩溃
+		if (!CachedOwnerCharacter.IsValid() || !CachedOwnerCharacter->GetMesh())
 		{
-			if (Pair.Value.IsValid() && Pair.Value == Inventory)
+			return;
+		}
+		TWeakObjectPtr<AInventoryBase> Inventory = FindSavedInventoryInSlots(InBagData);
+		if (Inventory.IsValid())
+		{
+			for (const TPair<FGuid, TWeakObjectPtr<AInventoryBase>>& Pair : SavedInventoryInSlots)
 			{
-				print(TEXT("InID 有同类型装备已经穿戴 InstanceToActorMap ID：%s"), *Pair.Key.ToString());
-				UnequipInventory(Pair.Key);
+				if (Pair.Value.IsValid() && Pair.Value.Get() == Inventory.Get())
+				{
+					print(TEXT("InID 有同类型装备已经穿戴 InstanceToActorMap ID：%s"), *Pair.Key.ToString());
+					if (TOptional<FItemInBagData> ItemData = FindItemBagDataFromEquipped(Pair.Key))
+					{
+						UnequipInventory(ItemData.GetValue());
+					}
+					break; // 如果只允许一件装备同类型
+				}
 			}
 		}
-	}
-
-	//生成物品
-	SpawnInventory(InID);
-
-	//从背包移除
-	GetWorld()->GetTimerManager().SetTimerForNextTick([this,InID]()
-	{
-		//背包移除指针
-		CurrentInInventories.Remove(InID);
+		//生成物品
+		SpawnInventory(InBagData);
+		//从背包移除
+		Inventories.Remove(InBagData);
+		//添加到人物
+		EquippedItems.Add(InBagData);
 		//移除背包UI
-		RootPanelWidget->InventoryPanelWidget->RemoveItemFromSlot(InID);
-		//添加人物UI
-		RootPanelWidget->CharacterPanelWidget->AddItemToSlot(InID);
-
+		RootPanelWidget->InventoryPanelWidget->RemoveItemFromSlot(InBagData);
+		//同步UI显示
+		RootPanelWidget->CharacterPanelWidget->AddItemToSlot(InBagData);
+		print(TEXT("EquipInventory 了装备 %s"), *InBagData.InstanceID.ToString());
 		ShowCurrentInventories();
-	});
+	}
 }
 
-
 // 根据当前人物的 Socket 名称，检查是否已存在挂载的装备，返回该装备的 InstanceID（无则返回无效 ID）
-bool UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
+bool UWarInventoryComponent::HasInventoryInSocket(const FItemInBagData& InBagData) const
 {
-	if (!InID.IsValid()) return false;
+	if (!InBagData.InstanceID.IsValid()) return false;
 
 	// 获取当前人物的 Socket 名称
 	if (!CachedOwnerCharacter.IsValid() || !CachedOwnerCharacter->GetMesh())
@@ -298,11 +292,11 @@ bool UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
 	}
 	const FName CurrentSocketName = CachedOwnerCharacter->GetMesh()->GetAttachSocketName();
 	// 遍历当前已装备的物品
-	for (const FGuid& EquippedID : CurrentEquippedItems)
+	for (const FItemInBagData& EquippedItem : EquippedItems)
 	{
-		if (EquippedID == InID) continue;
+		if (EquippedItem.InstanceID == InBagData.InstanceID) continue;
 
-		const FWarInventoryRow* EquippedRow = FindItemRowByGuid(InID);
+		const FWarInventoryRow* EquippedRow = UWarGameInstanceSubSystem::FindInventoryRow(this, InBagData.TableRowID);
 		if (!EquippedRow) return false;
 
 		// 如果已装备物品的 Socket 和当前人物 Socket 相同，返回它的 InstanceID		
@@ -316,13 +310,13 @@ bool UWarInventoryComponent::HasInventoryInSocket(const FGuid& InID) const
 
 
 // 根据当前人物的 Socket 名称，检查是否已存在挂载的装备，返回该装备的 Actor 指针（无则返回 nullptr）
-TWeakObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInActorMap(const FGuid& InID) const
+TWeakObjectPtr<AInventoryBase> UWarInventoryComponent::FindSavedInventoryInSlots(const FItemInBagData& InBagData) const
 {
-	if (!InID.IsValid()) return nullptr;
+	if (!InBagData.InstanceID.IsValid()) return nullptr;
 
-	const FWarInventoryRow* EquippedRow = FindItemRowByGuid(InID);
+	const FWarInventoryRow* EquippedRow = UWarGameInstanceSubSystem::FindInventoryRow(this, InBagData.TableRowID);
 
-	for (const auto& Pair : InstanceToActorMap)
+	for (const auto& Pair : SavedInventoryInSlots)
 	{
 		if (!Pair.Value.IsValid()) continue;
 
@@ -339,39 +333,35 @@ TWeakObjectPtr<AInventoryBase> UWarInventoryComponent::FindActorInActorMap(const
 
 
 // 从身上取下放入背包
-void UWarInventoryComponent::UnequipInventory(const FGuid& InID)
+void UWarInventoryComponent::UnequipInventory(const FItemInBagData& InBagData)
 {
-	if (!InID.IsValid()) return;
-
-	if (!CurrentEquippedItems.Contains(InID)) return;
-
-	// 删除 Character 面板上的装备
-	CurrentEquippedItems.Remove(InID);
-
-	// Character UI 删除装备
-	RootPanelWidget->CharacterPanelWidget->RemoveItemFromSlot(InID);
-
-	// 添加到背包
-	CurrentInInventories.Add(InID);
-
-	// 背包 UI 添加装备
-	RootPanelWidget->InventoryPanelWidget->AddItemToSlot(InID);
-
-	// 销毁世界 Socket 上的装备
-	TWeakObjectPtr<AInventoryBase> InventoryPtr = FindActorInActorMap(InID);
-	if (!InventoryPtr.IsValid())
+	if (InBagData.InstanceID.IsValid() && EquippedItems.Contains(InBagData))
 	{
-		print(TEXT("InventoryPtr 无效"));
-		return;
-	}
-	// 先解除挂载
-	InventoryPtr->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	// 销毁世界的实例
-	InventoryPtr->Destroy();
-	InstanceToActorMap.Remove(InID);
-	print(TEXT("UnequipInventory 装备 %s"), *InID.ToString());
+		// 删除 Character 面板上的装备
+		EquippedItems.Remove(InBagData);
 
-	ShowCurrentInventories();
+		// Character UI 删除装备
+		RootPanelWidget->CharacterPanelWidget->RemoveItemFromSlot(InBagData);
+
+		// 添加到背包
+		Inventories.Add(InBagData);
+
+		// 背包 UI 添加装备
+		RootPanelWidget->InventoryPanelWidget->AddItemToSlot(InBagData);
+
+		// 销毁世界 Socket 上的装备
+		TWeakObjectPtr<AInventoryBase> InventoryPtr = FindSavedInventoryInSlots(InBagData);
+		if (InventoryPtr.IsValid())
+		{
+			// 先解除挂载
+			InventoryPtr->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+			// 销毁世界的实例
+			InventoryPtr->Destroy();
+			SavedInventoryInSlots.Remove(InBagData.InstanceID);
+			print(TEXT("UnequipInventory 装备 %s"), *InBagData.InstanceID.ToString());
+		}
+		ShowCurrentInventories();
+	}
 }
 
 
@@ -379,7 +369,20 @@ void UWarInventoryComponent::ShowCurrentInventories() const
 {
 	print(TEXT("| Inventory Type        | Count |"));
 	print(TEXT("|-----------------------|-------|"));
-	print(TEXT("| CurrentEquippedItems  | %5d |"), CurrentEquippedItems.Num());
-	print(TEXT("| CurrentInInventories  | %5d |"), CurrentInInventories.Num());
-	print(TEXT("| AllInventoryData      | %5d |"), AllInventoryData.Num());
+	print(TEXT("| EquippedItems  | %5d |"), EquippedItems.Num());
+	print(TEXT("| Inventories  | %5d |"), Inventories.Num());
+	// UWarPersistentSystem::CheckInventoriesInDB(this);
+}
+
+
+TOptional<FItemInBagData> UWarInventoryComponent::FindItemBagDataFromEquipped(const FGuid& InID)
+{
+	for (const auto& Pair : EquippedItems)
+	{
+		if (Pair.InstanceID == InID)
+		{
+			return Pair;
+		}
+	}
+	return TOptional<FItemInBagData>();
 }

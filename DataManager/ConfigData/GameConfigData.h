@@ -19,4 +19,6 @@ public:
 	TSoftObjectPtr<UMaterialInstance> OutLineMaterial;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GameConfig")
 	FVector FollowCameraOffset;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GameConfig")
+	FVector FollowCameraNormal;
 };

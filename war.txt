@@ -1,0 +1,106 @@
+﻿CREATE TABLE IF NOT EXISTS inventoryitems (
+  instanceid TEXT PRIMARY KEY,
+  playerid TEXT,
+  tablerowid TEXT,
+  count REAL,
+  inventorytype INTEGER,
+  damage REAL,
+  durability REAL,
+  defense REAL,
+  questid TEXT,
+  level INTEGER,
+  consumable_amount REAL,
+  cooldown REAL
+);
+CREATE INDEX IF NOT EXISTS idx_items_player ON inventoryitems (playerid);
+CREATE INDEX IF NOT EXISTS idx_items_type ON inventoryitems (inventorytype);
+CREATE INDEX IF NOT EXISTS idx_items_template ON inventoryitems (tablerowid);
+
+
+
+插入武器数据
+INSERT INTO inventoryitems (
+    instanceid, playerid, tablerowid, count, inventorytype,
+    damage, durability
+) VALUES (
+             'weapon_001', 'player_123', 'sword_01', 1, 1,
+             25.5, 100.0
+         );
+
+
+插入护甲数据
+INSERT INTO inventoryitems (
+    instanceid, playerid, tablerowid, count, inventorytype,
+    defense, durability
+) VALUES (
+             'armor_001', 'player_123', 'chestplate_01', 1, 2,
+             15.0, 80.0
+         );
+
+
+插入消耗品数据
+INSERT INTO inventoryitems (
+    instanceid, playerid, tablerowid, count, inventorytype,
+    consumable_amount
+) VALUES (
+             'potion_001', 'player_123', 'health_potion', 5, 4,
+             30.0
+         );
+
+
+查询玩家所有物品
+SELECT * FROM inventoryitems 
+WHERE playerid = 'player_123';
+
+查询特定类型物品
+SELECT * FROM inventoryitems
+WHERE inventorytype = 1;  -- 1表示武器类型
+
+查询特定物品模板
+SELECT instanceid, damage, durability
+FROM inventoryitems
+WHERE inventorytype = 1 AND durability < 20.0;
+
+查询耐久度低的武器
+SELECT instanceid, damage, durability 
+FROM inventoryitems
+WHERE inventorytype = 1 AND durability < 20.0;
+
+更新武器耐久度
+UPDATE inventoryitems 
+SET durability = durability - 5.0
+WHERE instanceid = 'weapon_001';
+
+更新物品数量
+UPDATE inventoryitems 
+SET damage = damage + 5.0
+WHERE instanceid = 'weapon_001';
+
+删除特定物品
+DELETE FROM inventoryitems 
+WHERE instanceid = 'weapon_001';
+
+删除玩家所有物品
+DELETE FROM inventoryitems 
+WHERE playerid = 'player_123';
+
+删除耐久度为0的物品
+DELETE FROM inventoryitems 
+WHERE durability <= 0;
+
+统计玩家各类物品数量
+SELECT inventorytype, COUNT(*) as item_count
+FROM inventoryitems
+WHERE playerid = 'player_123'
+GROUP BY inventorytype;
+
+查找最高伤害的武器
+SELECT * FROM inventoryitems
+WHERE inventorytype = 1
+ORDER BY damage DESC
+LIMIT 1;
+
+批量更新同类物品
+UPDATE inventoryitems
+SET durability = 100.0
+WHERE tablerowid = 'sword_01' AND durability < 50.0;

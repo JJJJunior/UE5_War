@@ -1,5 +1,6 @@
 ﻿#include "InventoryBase.h"
 #include "Components/SphereComponent.h"
+#include "WarComponents/PersistentSystem/WarPersistentSystem.h"
 
 
 AInventoryBase::AInventoryBase()
@@ -17,6 +18,8 @@ void AInventoryBase::BeginPlay()
 {
 	//不要乱删，否则无法destory
 	Super::BeginPlay();
+
+	PersistentActorID = UWarPersistentSystem::SetPersistentActorGuid();
 }
 
 void AInventoryBase::DisableInteractionSphere() const
@@ -36,11 +39,19 @@ void AInventoryBase::Interact_Implementation()
 void AInventoryBase::OnBeginFocus_Implementation()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("OnBeginFocus_Implementation....."));
-
 }
 
 //鼠标离开做事
 void AInventoryBase::OnEndFocus_Implementation()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("OnEndFocus_Implementation....."));
+}
+
+
+void AInventoryBase::SaveActorData(FMemoryWriter& MemoryWriter) const
+{
+}
+
+void AInventoryBase::LoadActorData(FMemoryReader& MemoryReader) const
+{
 }

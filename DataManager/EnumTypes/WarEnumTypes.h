@@ -7,7 +7,8 @@ UENUM(BlueprintType)
 enum class EWarInventoryType: uint8
 {
 	None = 0,
-	Equipment, // 装备 (武器、护甲等可穿戴/使用的物品)
+	Weapon, // 武器
+	Armor, //装备
 	QuestItem, // 任务物品 (专门用于任务的物品)
 	Consumable, // 消耗品 (使用后会消失的物品，如药水、食物)
 	Material, // 材料 (用于合成的原材料)

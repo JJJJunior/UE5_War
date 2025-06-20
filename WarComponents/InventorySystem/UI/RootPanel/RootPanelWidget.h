@@ -33,6 +33,8 @@ public:
 	UWrapBox* InventoryWrapBox;
 	UPROPERTY(VisibleAnywhere, meta=(BindWidget), Category="UI")
 	UWrapBox* QuickWrapBox;
+	UPROPERTY(VisibleAnywhere, meta=(BindWidget), Category="UI")
+	UUserWidget* TargetWidget;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UInventoryPanelWidget> InventoryPanelWidgetClass;

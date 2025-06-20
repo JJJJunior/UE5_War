@@ -47,7 +47,7 @@ void UQuickPanelWidget::InitSlots()
 void UQuickPanelWidget::SyncSlots()
 {
 	ClearAllSlots();
-	const TSet<FGuid>& CurrentQuickItems = CachedCharacter->GetWarInventoryComponent()->GetCurrentInQuickItems();
+	const TArray<FItemInBagData>& CurrentQuickItems = CachedCharacter->GetWarInventoryComponent()->GetCurrentInQuickItems();
 	if (CurrentQuickItems.Num() > 0)
 	{
 		for (const auto& InQuickItem : CurrentQuickItems)
@@ -57,7 +57,7 @@ void UQuickPanelWidget::SyncSlots()
 	}
 }
 
-void UQuickPanelWidget::RemoveItemFromSlot(const FGuid& InID)
+void UQuickPanelWidget::RemoveItemFromSlot(const FItemInBagData& InBagData)
 {
 	for (auto& InSlot : QuickSlots)
 	{
@@ -66,14 +66,15 @@ void UQuickPanelWidget::RemoveItemFromSlot(const FGuid& InID)
 			continue;
 		}
 		// 判断这个格子的 InstanceIDs 里是否包含目标实例 ID
-		if (InSlot->ItemDataInSlot.InstanceIDs.Contains(InID))
+		if (InSlot->ItemDataInSlot.InstanceID == InBagData.InstanceID.ToString())
 		{
 			// 执行移除
-			InSlot->RemoveItemByInstanceID(InID);
+			InSlot->RemoveItemByInstanceID(InBagData);
 			break; // 找到立即退出
 		}
 	}
 }
+
 
 void UQuickPanelWidget::ClearAllSlots()
 {
@@ -81,21 +82,20 @@ void UQuickPanelWidget::ClearAllSlots()
 	{
 		if (InSlot)
 		{
-			InSlot->RemoveItem();
+			InSlot->CleanSlot(); // 这里推荐用彻底清空的方法
 		}
 	}
 }
 
-//检查类型添加
-void UQuickPanelWidget::AddItemToSlot(const FGuid& InID)
-{
-	const FInventoryInstanceData* InData = CachedCharacter->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
 
+//检查类型添加
+void UQuickPanelWidget::AddItemToSlot(const FItemInBagData& InBagData)
+{
 	for (auto& InSlot : QuickSlots)
 	{
-		if (InData->InventoryType == EWarInventoryType::Skill || InData->InventoryType == EWarInventoryType::Consumable && InSlot->ItemDataInSlot.bIsEmpty)
+		if (InBagData.InventoryType == EWarInventoryType::Skill || InBagData.InventoryType == EWarInventoryType::Consumable && InSlot->ItemDataInSlot.bIsEmpty)
 		{
-			InSlot->AddInventoryToSlot(InID);
+			InSlot->AddInventoryToSlot(InBagData);
 			InSlot->ItemDataInSlot.ParentPanel = "Quick";
 			break;
 		}

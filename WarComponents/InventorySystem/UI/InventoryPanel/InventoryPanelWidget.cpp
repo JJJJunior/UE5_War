@@ -5,6 +5,7 @@
 #include "war/WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "Misc/StringBuilder.h"
 #include "Tools/MyLog.h"
+#include "WarComponents/PersistentSystem/WarPersistentSystem.h"
 
 void UInventoryPanelWidget::NativeConstruct()
 {
@@ -44,10 +45,10 @@ void UInventoryPanelWidget::InitSlots()
 void UInventoryPanelWidget::SyncSlots()
 {
 	ClearAllSlots();
-	const TSet<FGuid>& CurrentInventories = CachedCharacter->GetWarInventoryComponent()->GetCurrentInInventories();
+	TArray<FItemInBagData> CurrentInventories = CachedCharacter->GetWarInventoryComponent()->GetCurrentInInventories();
 	if (CurrentInventories.Num() > 0)
 	{
-		for (const auto& Inventory : CurrentInventories)
+		for (const FItemInBagData& Inventory : CurrentInventories)
 		{
 			AddItemToSlot(Inventory);
 		}
@@ -68,22 +69,16 @@ void UInventoryPanelWidget::ClearAllSlots()
 }
 
 // 添加物品（支持堆叠）
-void UInventoryPanelWidget::AddItemToSlot(const FGuid& InID)
+void UInventoryPanelWidget::AddItemToSlot(const FItemInBagData& InBagData)
 {
-	// 获取物品信息
-	const FInventoryInstanceData* FindData = CachedCharacter->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
-	if (!FindData)
-	{
-		print(TEXT("AddItem: 未找到物品数据！"));
-		return;
-	}
+	if (InBagData.InventoryType == EWarInventoryType::None && InBagData.InventoryType == EWarInventoryType::Skill) return;
 
 	// 1. 查找是否有相同类型且未满的槽位
-	UItemSlotWidget* SuitableSlot = FindSuitableSlot(FindData->TableRowID);
+	UItemSlotWidget* SuitableSlot = FindSuitableSlot(InBagData.TableRowID);
 
 	if (SuitableSlot)
 	{
-		SuitableSlot->AddInventoryToSlot(InID);
+		SuitableSlot->AddInventoryToSlot(InBagData);
 	}
 	else
 	{
@@ -91,7 +86,7 @@ void UInventoryPanelWidget::AddItemToSlot(const FGuid& InID)
 		UItemSlotWidget* EmptySlot = FindFirstEmptySlot();
 		if (EmptySlot)
 		{
-			EmptySlot->AddInventoryToSlot(InID);
+			EmptySlot->AddInventoryToSlot(InBagData);
 			EmptySlot->ItemDataInSlot.ParentPanel = "Inventory";
 			EmptySlot->ItemDataInSlot.EquipmentSlotType = EEquipmentSlotType::None;
 		}
@@ -104,17 +99,17 @@ void UInventoryPanelWidget::AddItemToSlot(const FGuid& InID)
 
 
 // 从背包移除装备
-void UInventoryPanelWidget::RemoveItemFromSlot(const FGuid& InID)
+void UInventoryPanelWidget::RemoveItemFromSlot(const FItemInBagData& InBagData)
 {
 	for (auto& InSlot : CurrentInventorySlots)
 	{
 		if (InSlot->ItemDataInSlot.bIsEmpty) continue;
-
+		
 		// 判断这个格子的 InstanceIDs 是否包含目标实例 ID
-		if (InSlot->ItemDataInSlot.InstanceIDs.Contains(InID))
+		if (InSlot->ItemDataInSlot.InstanceID == InBagData.InstanceID.ToString())
 		{
 			// 执行移除
-			InSlot->RemoveItemByInstanceID(InID);
+			InSlot->RemoveItemByInstanceID(InBagData);
 			break; // 找到立即退出
 		}
 	}

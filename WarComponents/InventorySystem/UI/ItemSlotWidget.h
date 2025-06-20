@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
+#include "War/WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "ItemSlotWidget.generated.h"
 
 
@@ -14,6 +14,7 @@ class USizeBox;
 class UTextBlock;
 class AInventoryBase;
 class AWarHeroCharacter;
+struct FItemInBagData;
 
 USTRUCT()
 struct FItemDataInSlot
@@ -27,9 +28,9 @@ struct FItemDataInSlot
 	UPROPERTY(VisibleAnywhere, Category="UI")
 	int32 InventoryInSlots = 0; //当前物品数量
 	UPROPERTY(VisibleAnywhere, Category="UI")
-	FName CachedTableRowID;
+	FString InstanceID = FString();
 	UPROPERTY(VisibleAnywhere, Category="UI")
-	TArray<FGuid> InstanceIDs; //物品的实例ID
+	FName CachedTableRowID;
 	UPROPERTY(VisibleAnywhere, Category="UI")
 	TObjectPtr<UTexture2D> CachedTexture; //物品的图片
 	UPROPERTY(VisibleAnywhere, Category="UI")
@@ -39,6 +40,8 @@ struct FItemDataInSlot
 	FString ParentPanel;
 	UPROPERTY(VisibleAnywhere, Category="UI")
 	EEquipmentSlotType EquipmentSlotType;
+	UPROPERTY(VisibleAnywhere, Category="UI")
+	FItemInBagData ItemInBagData = FItemInBagData();
 
 	FItemDataInSlot(): CachedTexture(nullptr), EquipmentSlotType()
 	{
@@ -71,17 +74,16 @@ public:
 	UPROPERTY()
 	TWeakObjectPtr<AWarHeroCharacter> CachedCharacter;
 
-	void SetMaxCount(const FGuid& InID);
+	void SetMaxCount(const FItemInBagData& InBagData);
 	int32 GetMaxCount() const { return ItemDataInSlot.MaxCount; }
 
 
 	virtual void NativeConstruct() override;
-	void AddInventoryToSlot(const FGuid& InID);
-	void RemoveItem();
-	void RemoveItemByInstanceID(const FGuid& InID);
+	void AddInventoryToSlot(const FItemInBagData& InBagData);
+	void RemoveItemByInstanceID(const FItemInBagData& InBagData);
 	void Show();
 	void CleanSlot() const;
-	FGuid GetFirstInstanceID(const FName& TableRowID) const;
+	bool CheckSameItemType(const FItemInBagData& InBagData) const;
 
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;

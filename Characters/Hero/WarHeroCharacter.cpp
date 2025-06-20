@@ -7,14 +7,15 @@
 #include "GameFramework/Controller.h"
 #include "InputActionValue.h"
 #include "War/DataManager/ConfigData/GameConfigData.h"
-#include "War/GameManager/GameInstance/WarGameInstanceSubSystem.h"
-#include "War/GameManager/GameTags/WarGameTags.h"
+#include "War/GameInstance/WarGameInstanceSubSystem.h"
+#include "War/GameTags/WarGameTags.h"
 #include "Kismet/GameplayStatics.h"
 #include "Tools/MyLog.h"
 #include "WarComponents/Input/WarInputComponent.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "WarComponents/InteractionSystem/WarInteractionComponent.h"
 #include "War/WarComponents/PersistentSystem/WarPersistentSystem.h"
+#include "WarComponents/InventorySystem/UI/RootPanel/RootPanelWidget.h"
 
 
 AWarHeroCharacter::AWarHeroCharacter()
@@ -53,7 +54,6 @@ void AWarHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	WarSubSystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
-
 	if (!WarSubSystem.IsValid())
 	{
 		print(TEXT("WarSubSystem is invalid"));
@@ -62,12 +62,24 @@ void AWarHeroCharacter::BeginPlay()
 	checkf(WarInventoryComponent, TEXT("WarInventoryComponent is NULL"));
 	checkf(WarInteractionComponent, TEXT("WarInteractionComponent is NULL"));
 
-	CameraBoom->SocketOffset = WarSubSystem->GameConfigData->FollowCameraOffset;
+	DisableTarget();
 
-	print(TEXT("当前玩家的Guid: %s"), *this->GetActorInstanceGuid().ToString());
-
+	// print(TEXT("当前玩家的Guid: %s"), *this->PersistentActorID.ToString());
 	//自动加载存档
-	this->GetWarSubSystem()->GetWarPersistentSystem()->LoadGame();
+	UWarPersistentSystem::LoadGame(this);
+}
+
+
+void AWarHeroCharacter::EnableTarget() const
+{
+	CameraBoom->SocketOffset = WarSubSystem->GetCachedGameConfigData()->FollowCameraOffset;
+	GetWarInventoryComponent()->GetRootPanelWidget()->TargetWidget->SetVisibility(ESlateVisibility::Visible);
+}
+
+void AWarHeroCharacter::DisableTarget() const
+{
+	CameraBoom->SocketOffset = WarSubSystem->GetCachedGameConfigData()->FollowCameraNormal;
+	GetWarInventoryComponent()->GetRootPanelWidget()->TargetWidget->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 

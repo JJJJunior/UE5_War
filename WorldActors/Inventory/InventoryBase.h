@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "War/WarComponents/InteractionSystem/Interface/InteractableInterface.h"
+#include "War/SaveGame/Interface/WarSaveGameInterface.h"
 #include "InventoryBase.generated.h"
 
 
@@ -10,7 +11,7 @@ class UStaticMeshComponent;
 class USphereComponent;
 
 UCLASS()
-class WAR_API AInventoryBase : public AActor, public IInteractableInterface
+class WAR_API AInventoryBase : public AActor, public IInteractableInterface, public IWarSaveGameInterface
 {
 	GENERATED_BODY()
 
@@ -23,6 +24,8 @@ protected:
 	TObjectPtr<USphereComponent> InteractionSphere; //主要用于和WarInteractionComponent进行overlap交互
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Inventory")
 	FName TableRowID;
+	UPROPERTY()
+	FGuid PersistentActorID;
 
 public:
 	AInventoryBase();
@@ -36,4 +39,8 @@ public:
 	//关闭碰撞体
 	void DisableInteractionSphere() const;
 	FName GetTableRowID() const { return TableRowID; }
+
+	virtual void SaveActorData(FMemoryWriter& MemoryWriter) const override;
+	virtual void LoadActorData(FMemoryReader& MemoryReader) const override;
+	virtual FGuid GetPersistentActorID() const override { return PersistentActorID; };
 };

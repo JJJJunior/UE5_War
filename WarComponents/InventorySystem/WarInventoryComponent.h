@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "War/DataManager/DynamicData/InventoryInstanceData.h"
+#include "War/DataManager/DynamicData/InventoryData.h"
 #include "WarInventoryComponent.generated.h"
 
 
@@ -9,15 +9,15 @@ class UGameInstanceSubsystem;
 class AWarCharacterBase;
 class AInventoryBase;
 class APlayerController;
-struct FWarSpawnInventoryRow;
 class UUserWidget;
 class URootPanelWidget;
 class UInventoryPanelWidget;
 class UCharacterPanelWidget;
-struct FWarInventoryRow;
+class USizeBox;
 
 //广播通知UI打开状态
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUIStateChanged, bool, bCharacterUIVisible, bool, bInventoryUIVisible);
+
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class WAR_API UWarInventoryComponent : public UActorComponent
@@ -33,28 +33,26 @@ class WAR_API UWarInventoryComponent : public UActorComponent
 protected:
 	UPROPERTY()
 	TWeakObjectPtr<AWarCharacterBase> CachedOwnerCharacter;
-	TObjectPtr<UDataTable> GetInventoryDataTable() const;
 	//初始化UI
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="MySpawnData")
 	TSubclassOf<URootPanelWidget> RootPanelWidgetClass;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="MySpawnData")
 	TObjectPtr<URootPanelWidget> RootPanelWidget;
 
-	//全局物品数据池
+	//背包栏
 	UPROPERTY()
-	TMap<FGuid, FInventoryInstanceData> AllInventoryData;
-	//当前背包
+	TArray<FItemInBagData> Inventories;
+	//装备栏
 	UPROPERTY()
-	TSet<FGuid> CurrentInInventories;
-	//当前装备的ID
-	UPROPERTY()
-	TSet<FGuid> CurrentEquippedItems;
-	// ID -> 场景 Actor 映射表（用 WeakPtr 防止内存泄漏）
-	UPROPERTY()
-	TMap<FGuid, TWeakObjectPtr<AInventoryBase>> InstanceToActorMap;
+	TArray<FItemInBagData> EquippedItems;
 	//快捷栏
 	UPROPERTY()
-	TSet<FGuid> CurrentInQuickItems;
+	TArray<FItemInBagData> QuickItems;
+
+	//保存装备指针
+	UPROPERTY()
+	TMap<FGuid, TWeakObjectPtr<AInventoryBase>> SavedInventoryInSlots;
+
 
 	void InitRootUI();
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="MySpawnData")
@@ -63,23 +61,24 @@ protected:
 	bool bCharacterUIVisible = false;
 
 	//添加物品
-	void AddInventory(const FInventoryInstanceData& NewData);
+	void AddInventory(const FItemInBagData& InBagData);
 	// 装备物品（生成场景 Actor）
-	void SpawnInventory(const FGuid& InID);
-	bool HasInventoryInSocket(const FGuid& InID) const;
-	// 查询当前装备的场景 Actor
-	TWeakObjectPtr<AInventoryBase> FindActorInActorMap(const FGuid& InID) const;
+	void SpawnInventory(const FItemInBagData& InBagData);
+	bool HasInventoryInSocket(const FItemInBagData& InBagData) const;
+	// 查询当前装备指针
+	TWeakObjectPtr<AInventoryBase> FindSavedInventoryInSlots(const FItemInBagData& InBagData) const;
 	void ShowCurrentInventories() const;
+	//根据Guid找数据
+	TOptional<FItemInBagData> FindItemBagDataFromEquipped(const FGuid& InID);
 
 public:
 	UWarInventoryComponent();
 	virtual void BeginPlay() override;
-	const TSet<FGuid>& GetCurrentEquippedItems() const { return CurrentEquippedItems; }
-	const TSet<FGuid>& GetCurrentInInventories() const { return CurrentInInventories; }
-	const TSet<FGuid>& GetCurrentInQuickItems() const { return CurrentInQuickItems; }
+	const TArray<FItemInBagData>& GetCurrentEquippedItems() const { return EquippedItems; }
+	const TArray<FItemInBagData>& GetCurrentInInventories() const { return Inventories; }
+	const TArray<FItemInBagData>& GetCurrentInQuickItems() const { return QuickItems; }
 	void ToggleInventoryUI();
 	void ToggleCharacterUI();
-	void InitInventories();
 
 	// 提供状态查询函数
 	bool IsInventoryUIVisible() const { return bInventoryUIVisible; }
@@ -87,12 +86,11 @@ public:
 
 	//给外部调用
 	//穿装备
-	void EquipInventory(const FGuid& InID);
-	void UnequipInventory(const FGuid& InID);
+	void EquipInventory(const FItemInBagData& InBagData);
+	void UnequipInventory(const FItemInBagData& InBagData);
 	//广播通知UI打开状态
 	UPROPERTY()
 	FOnUIStateChanged OnUIStateChanged;
-	void GenerateAndAddInventory(const FName& TableID);
-	const FWarInventoryRow* FindItemRowByGuid(const FGuid& Guid) const;
-	const FInventoryInstanceData* FindInventoryDataByGuid(const FGuid& Guid) const;
+	bool GenerateItemToBagAndSaved(const FName& TableID);
+	FORCEINLINE TObjectPtr<URootPanelWidget> GetRootPanelWidget() const { return RootPanelWidget; }
 };

@@ -14,6 +14,7 @@ class UBorder;
 class AInventoryBase;
 class USizeBox;
 class AWarHeroCharacter;
+struct FItemInBagData;
 
 UCLASS()
 class WAR_API UInventoryPanelWidget : public UUserWidget, public IContainerWidgetInterface
@@ -39,9 +40,9 @@ public:
 	virtual void NativeConstruct() override;
 	virtual void InitSlots() override;
 	virtual void SyncSlots() override;
-	virtual void RemoveItemFromSlot(const FGuid& InID) override;
+	virtual void RemoveItemFromSlot(const FItemInBagData& InBagData) override;
 	virtual void ClearAllSlots() override;
-	virtual void AddItemToSlot(const FGuid& InID) override;
+	virtual void AddItemToSlot(const FItemInBagData& InBagData) override;
 	virtual int32 GetMaxSlots() const override { return MaxSlots; }
 	UItemSlotWidget* FindSuitableSlot(const FName& TableRowID);
 	UItemSlotWidget* FindFirstEmptySlot();

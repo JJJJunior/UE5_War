@@ -3,6 +3,7 @@
 #include "CharacterPanel/CharacterPanelWidget.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "GameInstance/WarGameInstanceSubSystem.h"
 #include "Tools/MyLog.h"
 #include "WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
 #include "War/Characters/Hero/WarHeroCharacter.h"
@@ -23,50 +24,41 @@ void UItemSlotWidget::NativeConstruct()
 
 
 // 添加装备
-void UItemSlotWidget::AddInventoryToSlot(const FGuid& InID)
+void UItemSlotWidget::AddInventoryToSlot(const FItemInBagData& InBagData)
 {
-	const FInventoryInstanceData* FindData = CachedCharacter->GetWarInventoryComponent()->FindInventoryDataByGuid(InID);
-	if (!FindData)
-	{
-		print(TEXT("AddInventoryToSlot: 未找到物品数据！"));
-		return;
-	}
-
 	// 如果格子是空的，初始化
 	if (ItemDataInSlot.bIsEmpty)
 	{
-		ItemDataInSlot.CachedTableRowID = FindData->TableRowID; // 设置物品ID
-		SetMaxCount(InID);
+		ItemDataInSlot.CachedTableRowID = InBagData.TableRowID; // 设置物品ID
+		ItemDataInSlot.ItemInBagData = InBagData; //后续要调用
+		ItemDataInSlot.InstanceID = InBagData.InstanceID.ToString();
+		SetMaxCount(InBagData);
 	}
 
-	// 判断是否为同类型物品
-	if (ItemDataInSlot.CachedTableRowID != FindData->TableRowID)
-	{
-		print(TEXT("AddInventoryToSlot: 物品类型不一致！"));
-		return;
-	}
+	//类型不一致跳出
+	if (!CheckSameItemType(InBagData)) return;
 
 	// 判断格子是否已满
 	if (ItemDataInSlot.InventoryInSlots >= ItemDataInSlot.MaxCount)
 	{
-		print(TEXT("UInventorySlotWidget::AddInventoryToSlot | 格子满了!"));
+		// print(TEXT("UInventorySlotWidget | 格子满了!"));
 		return;
 	}
 
 	// 执行叠加
-	ItemDataInSlot.InstanceIDs.Add(InID);
 	ItemDataInSlot.InventoryInSlots++;
-	ItemDataInSlot.bIsEmpty = false;
+	ItemDataInSlot.bIsEmpty = ItemDataInSlot.InventoryInSlots <= 0;
 
-	//UE_LOG(LogTemp, Warning, TEXT("AddInventoryToSlot | %s | 当前：%d | 最大：%d!"), *InID.ToString(), ItemDataInSlot.InstanceIDs.Num(), ItemDataInSlot.MaxCount);
+	//print(TEXT("AddInventoryToSlot | %s | 当前：%d | 最大：%d!"), *ItemDataInSlot.CachedTableRowID.ToString(), ItemDataInSlot.InventoryInSlots, ItemDataInSlot.MaxCount);
 	Show();
 }
 
 
 //设置堆叠范围
-void UItemSlotWidget::SetMaxCount(const FGuid& InID)
+void UItemSlotWidget::SetMaxCount(const FItemInBagData& InBagData)
 {
-	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InID);
+	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, InBagData.TableRowID);
+
 	if (!ItemRow)
 	{
 		print(TEXT("SetMaxCount: 找不到物品行数据！"));
@@ -74,9 +66,10 @@ void UItemSlotWidget::SetMaxCount(const FGuid& InID)
 		return;
 	}
 
-	switch (ItemRow->InventoryType)
+	switch (InBagData.InventoryType)
 	{
-	case EWarInventoryType::Equipment:
+	case EWarInventoryType::Armor:
+	case EWarInventoryType::Weapon:
 	case EWarInventoryType::Skill:
 		ItemDataInSlot.MaxCount = 1;
 		break;
@@ -85,52 +78,31 @@ void UItemSlotWidget::SetMaxCount(const FGuid& InID)
 	case EWarInventoryType::Material:
 		ItemDataInSlot.MaxCount = 99;
 		break;
+	case EWarInventoryType::None:
 	default:
 		ItemDataInSlot.MaxCount = 1;
 		break;
 	}
 }
 
-void UItemSlotWidget::RemoveItem()
-{
-	if (ItemDataInSlot.InventoryInSlots <= 0 || ItemDataInSlot.InstanceIDs.Num() == 0)
-	{
-		// print(TEXT("格子已空！"));
-		return;
-	}
-
-	// 从数组中移除最后一个物品实例
-	ItemDataInSlot.InstanceIDs.RemoveAt(ItemDataInSlot.InstanceIDs.Num() - 1);
-
-	ItemDataInSlot.InventoryInSlots--;
-
-	// 判断是否为空
-	if (ItemDataInSlot.InventoryInSlots == 0)
-	{
-		ItemDataInSlot.CachedTableRowID = NAME_None; // 清空类型
-		ItemDataInSlot.bIsEmpty = true;
-	}
-
-	Show();
-}
-
 // 移除指定物品实例
-void UItemSlotWidget::RemoveItemByInstanceID(const FGuid& InID)
+void UItemSlotWidget::RemoveItemByInstanceID(const FItemInBagData& InBagData)
 {
-	if (ItemDataInSlot.InventoryInSlots <= 0 || ItemDataInSlot.InstanceIDs.Num() == 0)
+	if (ItemDataInSlot.InstanceID != InBagData.InstanceID.ToString())
+	{
+		return;
+	}
+
+	if (ItemDataInSlot.InventoryInSlots <= 0)
 	{
 		// print(TEXT("格子已空！"));
 		return;
 	}
 
-	if (!ItemDataInSlot.InstanceIDs.Contains(InID))
-	{
-		print(TEXT("未找到该物品实例ID！"));
-		return;
-	}
+	//类型不一致跳出
+	if (!CheckSameItemType(InBagData)) return;
 
 	// 删除指定实例
-	ItemDataInSlot.InstanceIDs.Remove(InID);
 	ItemDataInSlot.InventoryInSlots--;
 
 	// 如果删除后数量为0，清空物品类型
@@ -138,6 +110,7 @@ void UItemSlotWidget::RemoveItemByInstanceID(const FGuid& InID)
 	{
 		ItemDataInSlot.CachedTableRowID = NAME_None;
 		ItemDataInSlot.bIsEmpty = true;
+		ItemDataInSlot.InstanceID = FString();
 	}
 
 	Show();
@@ -146,22 +119,13 @@ void UItemSlotWidget::RemoveItemByInstanceID(const FGuid& InID)
 // 显示物品
 void UItemSlotWidget::Show()
 {
-	if (ItemDataInSlot.bIsEmpty || ItemDataInSlot.InventoryInSlots == 0)
+	if (ItemDataInSlot.InventoryInSlots == 0)
 	{
 		CleanSlot();
 		return;
 	}
 
-	// 获取当前显示的物品实例ID
-	if (ItemDataInSlot.InstanceIDs.Num() == 0)
-	{
-		CleanSlot();
-		return;
-	}
-
-	FGuid InstanceID = ItemDataInSlot.InstanceIDs[0];
-
-	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InstanceID);
+	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, ItemDataInSlot.CachedTableRowID);
 	if (!ItemRow)
 	{
 		CleanSlot();
@@ -197,15 +161,34 @@ void UItemSlotWidget::CleanSlot() const
 	ItemImage->SetBrushFromTexture(nullptr);
 }
 
-
-//拿到到列表中的第一个实例ID
-FGuid UItemSlotWidget::GetFirstInstanceID(const FName& TableRowID) const
+bool UItemSlotWidget::CheckSameItemType(const FItemInBagData& InBagData) const
 {
-	if (ItemDataInSlot.CachedTableRowID == TableRowID && ItemDataInSlot.InventoryInSlots > 0)
+	// 如果槽位是空的，直接返回 true（因为可以放入任何新物品）
+	if (ItemDataInSlot.bIsEmpty)
 	{
-		return ItemDataInSlot.InstanceIDs[0];
+		return true;
 	}
-	return FGuid();
+
+	switch (InBagData.InventoryType)
+	{
+	case EWarInventoryType::Armor:
+	case EWarInventoryType::Weapon:
+	case EWarInventoryType::Skill:
+		if (ItemDataInSlot.InstanceID == InBagData.InstanceID.ToString())
+		{
+			return true;
+		}
+	case EWarInventoryType::QuestItem:
+	case EWarInventoryType::Consumable:
+	case EWarInventoryType::Material:
+		if (ItemDataInSlot.CachedTableRowID == InBagData.TableRowID.ToString())
+		{
+			return true;
+		}
+	case EWarInventoryType::None:
+	default:
+		return false;
+	}
 }
 
 
@@ -237,9 +220,7 @@ bool UItemSlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
 	//有东西格子才能拖动
 	if (SourceSlot->ItemDataInSlot.InventoryInSlots > 0)
 	{
-		const FGuid& InstanceID = SourceSlot->GetFirstInstanceID(SourceSlot->ItemDataInSlot.CachedTableRowID);
-		const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InstanceID);
-
+		const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, SourceSlot->ItemDataInSlot.CachedTableRowID);
 		// 拖入的是角色装备面板
 		if (ItemDataInSlot.ParentPanel == "Character" && SourceSlot->ItemDataInSlot.ParentPanel == "Inventory")
 		{
@@ -247,7 +228,8 @@ bool UItemSlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
 			// 判断两者的装备的位置相同
 			if (SourceEquipmentSlotType == ItemDataInSlot.EquipmentSlotType)
 			{
-				CachedCharacter->GetWarInventoryComponent()->EquipInventory(InstanceID);
+				//传递要传原来格子数据，不是新格子数据。SourceSlot
+				CachedCharacter->GetWarInventoryComponent()->EquipInventory(SourceSlot->ItemDataInSlot.ItemInBagData);
 				return true;
 			}
 		}
@@ -255,7 +237,7 @@ bool UItemSlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
 		if (ItemDataInSlot.ParentPanel == "Inventory" && SourceSlot->ItemDataInSlot.ParentPanel == "Character")
 		{
 			// 卸下装备
-			CachedCharacter->GetWarInventoryComponent()->UnequipInventory(InstanceID);
+			CachedCharacter->GetWarInventoryComponent()->UnequipInventory(SourceSlot->ItemDataInSlot.ItemInBagData);
 			return true;
 		}
 		return false;
@@ -265,7 +247,6 @@ bool UItemSlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
 
 FReply UItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	FGuid InstanceID = GetFirstInstanceID(ItemDataInSlot.CachedTableRowID);
 	//有装备的情况下
 	if (ItemDataInSlot.InventoryInSlots > 0)
 	{
@@ -274,11 +255,13 @@ FReply UItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, con
 		{
 			if (ItemDataInSlot.ParentPanel == "Inventory")
 			{
-				CachedCharacter->GetWarInventoryComponent()->EquipInventory(InstanceID);
+				// print(TEXT("点到Inventory面板了。 %s"), *ItemDataInSlot.InstanceID);
+				CachedCharacter->GetWarInventoryComponent()->EquipInventory(ItemDataInSlot.ItemInBagData);
 			}
 			else if (ItemDataInSlot.ParentPanel == "Character")
 			{
-				CachedCharacter->GetWarInventoryComponent()->UnequipInventory(InstanceID);
+				// print(TEXT("点到Character面板了。"));
+				CachedCharacter->GetWarInventoryComponent()->UnequipInventory(ItemDataInSlot.ItemInBagData);
 			}
 			// 可以在这里做：显示菜单、装备物品、使用物品等
 			return FReply::Handled();
@@ -295,9 +278,9 @@ FReply UItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, con
 
 void UItemSlotWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	FGuid InstanceID = GetFirstInstanceID(ItemDataInSlot.CachedTableRowID);
 	if (ItemDataInSlot.InventoryInSlots > 0)
 	{
-		print(TEXT("%s %s %d"), *InstanceID.ToString(), *ItemDataInSlot.ParentPanel, ItemDataInSlot.EquipmentSlotType);
+		// print(TEXT("%s %s %d"), *ItemDataInSlot.InstanceID, *ItemDataInSlot.ParentPanel, ItemDataInSlot.EquipmentSlotType);
+		// print(TEXT("ItemDataInSlot.ItemInBagData.InstanceID %s"), *ItemDataInSlot.ItemInBagData.InstanceID.ToString());
 	}
 }

@@ -6,6 +6,7 @@
 #include "ProjectCollision.h"
 #include "Components/SphereComponent.h"
 #include "Engine/World.h"
+#include "Tools/MyLog.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "WorldActors/Inventory/InventoryBase.h"
 
@@ -108,15 +109,19 @@ void UWarInteractionComponent::CrosshairTrace()
 
 void UWarInteractionComponent::BeginOnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	AInventoryBase* Inventory = Cast<AInventoryBase>(OtherActor);
-	if (!Inventory) return;
-	if (Inventory->GetTableRowID() == FName())
+	if (AInventoryBase* Inventory = Cast<AInventoryBase>(OtherActor))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Inventory Table Row ID is null"));
-		return;
+		if (!Inventory->GetTableRowID().IsValid())
+		{
+			print_err(TEXT("Inventory Table Row ID is null"));
+			return;
+		}
+		if (CachedWarHeroCharacter->GetWarInventoryComponent()->GenerateItemToBagAndSaved(Inventory->GetTableRowID()))
+		{
+			print(TEXT("发生了Overlap获取:%s"), *Inventory->GetTableRowID().ToString())
+			Inventory->Destroy();
+		}
 	}
-	CachedWarHeroCharacter->GetWarInventoryComponent()->GenerateAndAddInventory(Inventory->GetTableRowID());
-	Inventory->Destroy();
 }
 
 void UWarInteractionComponent::EndOnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)

@@ -1,4 +1,5 @@
 ﻿#include "WarCharacterBase.h"
+#include "WarComponents/PersistentSystem/WarPersistentSystem.h"
 
 AWarCharacterBase::AWarCharacterBase()
 {
@@ -24,7 +25,8 @@ void AWarCharacterBase::LoadActorData(FMemoryReader& MemoryReader) const
 	//  CurrentHealth = LoadedHealth;
 }
 
-FGuid AWarCharacterBase::GetSaveID() const
+void AWarCharacterBase::PostInitializeComponents()
 {
-	return PersistentActorID;
+	Super::PostInitializeComponents();
+	PersistentActorID = UWarPersistentSystem::SetPersistentActorGuid();
 }

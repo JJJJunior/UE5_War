@@ -22,7 +22,11 @@ public class War : ModuleRules
 			"GameplayTags"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"SQLiteCore",
+			"SQLiteSupport"
+		});
 
 		PublicIncludePaths.AddRange(new string[]
 		{

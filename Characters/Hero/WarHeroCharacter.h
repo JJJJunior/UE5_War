@@ -94,4 +94,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	UWarGameInstanceSubSystem* GetWarSubSystemInBP() const { return WarSubSystem.Get(); }
+
+	//开启比瞄准点，以及摄像机偏移
+	void EnableTarget() const;
+	void DisableTarget() const;
 };
