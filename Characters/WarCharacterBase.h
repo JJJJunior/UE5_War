@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "War/GameManager/SaveGame/Interface/WarSaveGameInterface.h"
+#include "war/SaveGame/Interface/WarSaveGameInterface.h"
 #include "WarCharacterBase.generated.h"
 
 
@@ -22,5 +22,5 @@ public:
 
 	virtual void SaveActorData(FMemoryWriter& MemoryWriter) const override;
 	virtual void LoadActorData(FMemoryReader& MemoryReader) const override;
-	virtual FGuid GetSaveID() const override;
+	FORCEINLINE virtual FGuid GetPersistentActorID() const override  { return PersistentActorID; };
 };

@@ -35,9 +35,9 @@ protected:
 public:
 	virtual void InitSlots() override;
 	virtual void SyncSlots() override;
-	virtual void RemoveItemFromSlot(const FGuid& InID) override;
+	virtual void RemoveItemFromSlot(const FItemInBagData& InBagData) override;
 	virtual void ClearAllSlots() override;
-	virtual void AddItemToSlot(const FGuid& InID) override;
+	virtual void AddItemToSlot(const FItemInBagData& InBagData) override;
 	virtual void NativeConstruct() override;
 	virtual int32 GetMaxSlots() const override { return MaxSlots; }
 };

@@ -8,6 +8,7 @@
 class AInventoryBase;
 struct FWarInventoryRow;
 struct FInventoryInstanceData;
+struct FItemInBagData;
 
 UINTERFACE()
 class UContainerWidgetInterface : public UInterface
@@ -23,8 +24,8 @@ class WAR_API IContainerWidgetInterface
 public:
 	virtual void InitSlots() = 0;
 	virtual void SyncSlots() = 0;
-	virtual void RemoveItemFromSlot(const FGuid& InID) =0;
+	virtual void RemoveItemFromSlot(const FItemInBagData& InBagData) =0;
 	virtual void ClearAllSlots() =0;
-	virtual void AddItemToSlot(const FGuid& InID) =0;
+	virtual void AddItemToSlot(const FItemInBagData& InBagData) =0;
 	virtual int32 GetMaxSlots() const =0;
 };

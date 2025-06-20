@@ -7,8 +7,8 @@
 #include "GameFramework/Controller.h"
 #include "InputActionValue.h"
 #include "War/DataManager/ConfigData/GameConfigData.h"
-#include "War/GameManager/GameInstance/WarGameInstanceSubSystem.h"
-#include "War/GameManager/GameTags/WarGameTags.h"
+#include "War/GameInstance/WarGameInstanceSubSystem.h"
+#include "War/GameTags/WarGameTags.h"
 #include "Kismet/GameplayStatics.h"
 #include "Tools/MyLog.h"
 #include "WarComponents/Input/WarInputComponent.h"
@@ -62,7 +62,7 @@ void AWarHeroCharacter::BeginPlay()
 	checkf(WarInventoryComponent, TEXT("WarInventoryComponent is NULL"));
 	checkf(WarInteractionComponent, TEXT("WarInteractionComponent is NULL"));
 
-	CameraBoom->SocketOffset = WarSubSystem->GameConfigData->FollowCameraOffset;
+	CameraBoom->SocketOffset = WarSubSystem->GetCachedGameConfigData()->FollowCameraOffset;
 
 	print(TEXT("当前玩家的Guid: %s"), *this->GetActorInstanceGuid().ToString());
 

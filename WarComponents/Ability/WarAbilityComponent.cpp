@@ -2,7 +2,7 @@
 
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
-#include "War/GameManager/GameInstance/WarGameInstanceSubSystem.h"
+#include "War/GameInstance/WarGameInstanceSubSystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "War/DataManager/StaticData/WarDataTableType.h"
 #include "War/Characters/Hero/WarHeroCharacter.h"

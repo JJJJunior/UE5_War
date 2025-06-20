@@ -5,121 +5,209 @@
 #include "InventoryInstanceData.generated.h"
 
 
-class UInventoryExtraData;
-class AInventoryBase;
-
-
-USTRUCT(Blueprintable)
-struct FEquipmentData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	float Amount = 0.0f;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float Defense = 0.0f;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	float Durability = 0.0f;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	FGuid PlayerID = FGuid();
-};
-
-
-USTRUCT(Blueprintable)
-struct FQuestItemData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	FGuid QuestID = FGuid();
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	FGuid PlayerID = FGuid();
-};
-
-
 USTRUCT(BlueprintType)
-struct FInventoryCreateParams
+struct FCreateInventoryDataParams
 {
 	GENERATED_BODY()
-	//基础参数
+
 	UPROPERTY(EditAnywhere)
 	FGuid InstanceID = FGuid();
+
 	UPROPERTY(EditAnywhere)
 	FGuid PlayerID = FGuid();
+
 	UPROPERTY(EditAnywhere)
 	FName TableRowID = FName();
+
 	UPROPERTY(EditAnywhere)
 	float Count = 0;
+
+	// 公共参数
+	UPROPERTY(EditAnywhere)
+	float Durability = 100.0f;
+
 	UPROPERTY(EditAnywhere)
 	EWarInventoryType InventoryType = EWarInventoryType::None;
-	// 装备参数
+
+	// 武器专用
 	UPROPERTY(EditAnywhere)
-	float Defense = 0.0f;
+	float Damage = 10.0f;
+
+	// 护甲专用
 	UPROPERTY(EditAnywhere)
-	float Amount = 0.0f;
-	UPROPERTY(EditAnywhere)
-	float Durability = 0.0f;
-	// 任务参数
+	float Defense = 5.0f;
+
+	// 任务物品专用
 	UPROPERTY(EditAnywhere)
 	FGuid QuestID = FGuid();
+
+	//消耗品专用
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	float Amount = 0.0f;
+
+	//技能专用
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	int32 Level = 1;
 };
 
 USTRUCT(Blueprintable)
-struct FInventoryInstanceData
+struct FInventoryItemData
 {
 	GENERATED_BODY()
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	FGuid InstanceID;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	FGuid PlayerID;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	FName TableRowID;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	int32 Count = 0;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	EWarInventoryType InventoryType = EWarInventoryType::None; // 武器、装备、消耗品、任务物品等
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	FEquipmentData EquipmentData;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	FQuestItemData QuestItemData;
 
-	//禁用默认构造函数，强制使用工厂
-	FInventoryInstanceData() = default;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	FGuid InstanceID = FGuid();
 
-	static FInventoryInstanceData CreateInventoryData(const FInventoryCreateParams& Params)
+	UPROPERTY(EditAnywhere)
+	FGuid PlayerID = FGuid();
+
+	UPROPERTY(EditAnywhere)
+	FName TableRowID = FName();
+
+	UPROPERTY(EditAnywhere)
+	float Count = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	EWarInventoryType InventoryType = EWarInventoryType::None;
+
+	virtual ~FInventoryItemData() = default;
+
+	virtual void Init(const FCreateInventoryDataParams& Params)
 	{
-		FInventoryInstanceData NewInstance;
-
-		//--- 基础数据初始化 ---
-		// 如果调用方未提供InstanceID，自动生成
-		NewInstance.InstanceID = Params.InstanceID.IsValid() ? Params.InstanceID : FGuid::NewGuid();
-		NewInstance.PlayerID = Params.PlayerID;
-		NewInstance.TableRowID = Params.TableRowID;
-		NewInstance.Count = FMath::Max(0, Params.Count); // 确保至少为0
-		NewInstance.InventoryType = Params.InventoryType;
-		//--- 类型特定数据初始化 ---
-		switch (Params.InventoryType)
-		{
-		case EWarInventoryType::Equipment:
-			NewInstance.EquipmentData = FEquipmentData{
-				Params.Amount,
-				Params.Defense,
-				FMath::Max(0, Params.Durability),
-				Params.PlayerID
-			};
-			break;
-
-		case EWarInventoryType::QuestItem:
-			NewInstance.QuestItemData = FQuestItemData{
-				Params.QuestID,
-				Params.PlayerID
-			};
-			break;
-
-		default:
-			UE_LOG(LogTemp, Error, TEXT("不支持的 InventoryType: %d"), static_cast<int32>(Params.InventoryType));
-			return FInventoryInstanceData(); // 返回全默认值结构体
-		}
-		return NewInstance;
+		InstanceID = Params.InstanceID;
+		PlayerID = Params.PlayerID;
+		TableRowID = Params.TableRowID;
+		InventoryType = Params.InventoryType;
+		Count = Params.Count;
 	}
 };
+
+// 武器数据
+USTRUCT(Blueprintable)
+struct FWeaponData : public FInventoryItemData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	float Damage = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	float Durability = 0.0f;
+
+	virtual void Init(const FCreateInventoryDataParams& Params) override
+	{
+		FInventoryItemData::Init(Params);
+		Damage = Params.Damage;
+		Durability = Params.Durability;
+	}
+
+	// 在FWeaponData中添加：
+	static EWarInventoryType StaticInventoryType() { return EWarInventoryType::Weapon; }
+};
+
+// 护甲数据
+USTRUCT(Blueprintable)
+struct FArmorData : public FInventoryItemData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	float Defense = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	float Durability = 0.0f;
+
+	virtual void Init(const FCreateInventoryDataParams& Params) override
+	{
+		FInventoryItemData::Init(Params);
+		Defense = Params.Defense;
+		Durability = Params.Durability;
+	}
+
+	// 在FArmorData中添加：
+	static EWarInventoryType StaticInventoryType() { return EWarInventoryType::Armor; }
+};
+
+// 任务物品数据
+USTRUCT(Blueprintable)
+struct FQuestItemData : public FInventoryItemData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	FGuid QuestID = FGuid();
+
+	virtual void Init(const FCreateInventoryDataParams& Params) override
+	{
+		FInventoryItemData::Init(Params);
+		QuestID = Params.QuestID;
+	}
+
+	// 在FQuestItemData中添加：
+	static EWarInventoryType StaticInventoryType() { return EWarInventoryType::QuestItem; }
+};
+
+// 任务物品数据
+USTRUCT(Blueprintable)
+struct FConsumableData : public FInventoryItemData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	float Amount = 0.0f;
+
+	virtual void Init(const FCreateInventoryDataParams& Params) override
+	{
+		FInventoryItemData::Init(Params);
+		Amount = Params.Amount;
+	}
+
+	static EWarInventoryType StaticInventoryType() { return EWarInventoryType::Consumable; }
+};
+
+// 技能物品
+USTRUCT(Blueprintable)
+struct FSkillData : public FInventoryItemData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	int32 Level = 1;
+
+	virtual void Init(const FCreateInventoryDataParams& Params) override
+	{
+		FInventoryItemData::Init(Params);
+		Level = Params.Level;
+	}
+
+	static EWarInventoryType StaticInventoryType() { return EWarInventoryType::Skill; }
+};
+
+
+// 工厂函数：创建物品数据
+static TSharedPtr<FInventoryItemData> CreateInventoryItem(const FCreateInventoryDataParams& Params)
+{
+	TSharedPtr<FInventoryItemData> Item;
+	switch (Params.InventoryType)
+	{
+	case EWarInventoryType::Weapon:
+		Item = MakeShared<FWeaponData>();
+		break;
+	case EWarInventoryType::Armor:
+		Item = MakeShared<FArmorData>();
+		break;
+	case EWarInventoryType::QuestItem:
+		Item = MakeShared<FQuestItemData>();
+		break;
+	case EWarInventoryType::Consumable:
+		Item = MakeShared<FConsumableData>();
+		break;
+	case EWarInventoryType::Skill:
+		Item = MakeShared<FSkillData>();
+		break;
+	default:
+		return nullptr;
+	}
+	Item->Init(Params);
+	return Item;
+}

@@ -115,7 +115,7 @@ void UWarInteractionComponent::BeginOnOverlap(UPrimitiveComponent* OverlappedCom
 		UE_LOG(LogTemp, Error, TEXT("Inventory Table Row ID is null"));
 		return;
 	}
-	CachedWarHeroCharacter->GetWarInventoryComponent()->GenerateAndAddInventory(Inventory->GetTableRowID());
+	CachedWarHeroCharacter->GetWarInventoryComponent()->GenerateItemToBagAndSaved(Inventory->GetTableRowID());
 	Inventory->Destroy();
 }
 

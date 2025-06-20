@@ -1,5 +1,6 @@
 ﻿#include "CharacterPanelWidget.h"
 #include "Components/SizeBox.h"
+#include "GameInstance/WarGameInstanceSubSystem.h"
 #include "Tools/MyLog.h"
 #include "War/WarComponents/InventorySystem/UI/ItemSlotWidget.h"
 #include "War/Characters/Hero/WarHeroCharacter.h"
@@ -27,7 +28,7 @@ void UCharacterPanelWidget::NativeConstruct()
 // 初始化所有装备槽
 void UCharacterPanelWidget::InitSlots()
 {
-	const TMap<EEquipmentSlotType, USizeBox*> SlotBoxMap = {
+	TMap<EEquipmentSlotType, USizeBox*> SlotBoxMap = {
 		{EEquipmentSlotType::Head, HeadBox},
 		{EEquipmentSlotType::Body, BodyBox},
 		{EEquipmentSlotType::LeftHand, LeftHandBox},
@@ -92,12 +93,12 @@ void UCharacterPanelWidget::SyncSlots()
 
 
 // 设置装备到指定槽位
-void UCharacterPanelWidget::AddItemToSlot(const FGuid& InID)
+void UCharacterPanelWidget::AddItemToSlot(const FItemInBagData& InBagData)
 {
 	if (!CachedCharacter.IsValid()) return;
+	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, InBagData.TableRowID);
 
-	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InID);
-	if (!ItemRow || ItemRow->InventoryType != EWarInventoryType::Equipment)
+	if (InBagData.InventoryType != EWarInventoryType::Armor && InBagData.InventoryType != EWarInventoryType::Weapon)
 	{
 		print(TEXT("AddItemToSlot: 非装备类型，忽略。"));
 		return;
@@ -108,18 +109,19 @@ void UCharacterPanelWidget::AddItemToSlot(const FGuid& InID)
 		if (UItemSlotWidget* SlotWidget = *SlotWidgetPtr)
 		{
 			// 装备槽位只允许一个物品，先清空再放入
-			SlotWidget->AddInventoryToSlot(InID);
+			SlotWidget->AddInventoryToSlot(InBagData);
 		}
 	}
 }
 
 // 移除装备
-void UCharacterPanelWidget::RemoveItemFromSlot(const FGuid& InID)
+void UCharacterPanelWidget::RemoveItemFromSlot(const FItemInBagData& InBagData)
 {
 	if (!CachedCharacter.IsValid()) return;
 
-	const FWarInventoryRow* ItemRow = CachedCharacter->GetWarInventoryComponent()->FindItemRowByGuid(InID);
-	if (!ItemRow || ItemRow->InventoryType != EWarInventoryType::Equipment)
+	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, InBagData.TableRowID);
+
+	if (!ItemRow || ItemRow->InventoryType != EWarInventoryType::Weapon && ItemRow->InventoryType != EWarInventoryType::Armor)
 	{
 		print(TEXT("RemoveItemFromSlot: 非装备类型，忽略。"));
 		return;
@@ -129,7 +131,7 @@ void UCharacterPanelWidget::RemoveItemFromSlot(const FGuid& InID)
 	{
 		if (UItemSlotWidget* SlotWidget = *SlotWidgetPtr)
 		{
-			SlotWidget->RemoveItemByInstanceID(InID);
+			SlotWidget->RemoveItemByInstanceID(InBagData);
 		}
 	}
 }

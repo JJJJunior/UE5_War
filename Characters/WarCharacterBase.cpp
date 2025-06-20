@@ -1,4 +1,5 @@
 ﻿#include "WarCharacterBase.h"
+#include "WarComponents/PersistentSystem/WarPersistentSystem.h"
 
 AWarCharacterBase::AWarCharacterBase()
 {
@@ -8,6 +9,7 @@ AWarCharacterBase::AWarCharacterBase()
 void AWarCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+	PersistentActorID = UWarPersistentSystem::SetPersistentActorGuid();
 }
 
 void AWarCharacterBase::SaveActorData(FMemoryWriter& MemoryWriter) const
@@ -22,9 +24,4 @@ void AWarCharacterBase::LoadActorData(FMemoryReader& MemoryReader) const
 	// 如果有其他数据（装备、技能CD等），继续读
 	//  MemoryReader << LoadedHealth;
 	//  CurrentHealth = LoadedHealth;
-}
-
-FGuid AWarCharacterBase::GetSaveID() const
-{
-	return PersistentActorID;
 }
