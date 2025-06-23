@@ -12,8 +12,8 @@ class WAR_API AWarCharacterBase : public ACharacter, public IWarSaveGameInterfac
 	GENERATED_BODY()
 
 protected:
-	UPROPERTY()
-	FGuid PersistentActorID;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save")
+	FGuid PersistentID = FGuid();
 
 public:
 	AWarCharacterBase();
@@ -22,6 +22,6 @@ public:
 
 	virtual void SaveActorData(FMemoryWriter& MemoryWriter) const override;
 	virtual void LoadActorData(FMemoryReader& MemoryReader) const override;
-	FORCEINLINE virtual FGuid GetPersistentActorID() const override { return PersistentActorID; };
-	virtual void PostInitializeComponents() override;
+	virtual FGuid GetPersistentID() const override;
+	virtual void SetPersistentID(const FGuid& NewID) override;
 };

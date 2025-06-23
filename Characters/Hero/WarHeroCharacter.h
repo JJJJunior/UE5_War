@@ -74,7 +74,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UWarInteractionComponent> WarInteractionComponent;
 	UPROPERTY()
-	TWeakObjectPtr<UWarGameInstanceSubSystem> WarSubSystem;
+	TObjectPtr<UWarGameInstanceSubSystem> CachedWarSubSystem;
 
 public:
 	AWarHeroCharacter();
@@ -90,12 +90,15 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UWarInteractionComponent* GetWarInteractionComponent() const { return WarInteractionComponent; }
 
-	TWeakObjectPtr<UWarGameInstanceSubSystem> GetWarSubSystem() const { return WarSubSystem; }
-
 	UFUNCTION(BlueprintCallable)
-	UWarGameInstanceSubSystem* GetWarSubSystemInBP() const { return WarSubSystem.Get(); }
+	UWarGameInstanceSubSystem* GetWarSubSystemInBP() const { return CachedWarSubSystem.Get(); }
 
 	//开启比瞄准点，以及摄像机偏移
 	void EnableTarget() const;
 	void DisableTarget() const;
+
+	UFUNCTION(BlueprintCallable)
+	void CheckAllActorStateInMemory() const;
+	UFUNCTION(BlueprintCallable)
+	void CheckAllInventoriesInMemory() const;
 };

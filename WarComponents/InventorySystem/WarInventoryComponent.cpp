@@ -19,12 +19,6 @@ UWarInventoryComponent::UWarInventoryComponent()
 void UWarInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	CachedOwnerCharacter = CastChecked<AWarCharacterBase>(GetOwner());
-	if (!CachedOwnerCharacter.IsValid())
-	{
-		print(TEXT("CachedOwnerCharacter 弱指针无效"));
-		return;
-	}
 	InitRootUI();
 }
 
@@ -47,6 +41,9 @@ bool UWarInventoryComponent::GenerateItemToBagAndSaved(const FName& TableID)
 		return false;
 	}
 
+	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwner());
+	if (!Character) return false;
+
 	const FWarInventoryRow* FindItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, TableID);
 	if (!FindItemRow) return false;
 
@@ -54,51 +51,56 @@ bool UWarInventoryComponent::GenerateItemToBagAndSaved(const FName& TableID)
 	{
 	case EWarInventoryType::Weapon:
 		{
-			const TOptional<FItemInBagData> Weapon = UWarDataManager::CreateWeapon(this, TableID, CachedOwnerCharacter->GetPersistentActorID());
-			if (Weapon.IsSet())
+			FItemInBagData Weapon;
+			UWarDataManager::CreateWeapon(this, TableID, Character->GetPersistentID(), Weapon);
+			if (Weapon.InstanceID.IsValid())
 			{
 				//添加背包
-				AddInventory(Weapon.GetValue());
+				AddInventory(Weapon);
 				bSuccess = true;
 			}
 		}
 		break;
 	case EWarInventoryType::Armor:
 		{
-			const TOptional<FItemInBagData> Armor = UWarDataManager::CreateArmor(this, TableID, CachedOwnerCharacter->GetPersistentActorID());
-			if (Armor.IsSet())
+			FItemInBagData Armor;
+			UWarDataManager::CreateArmor(this, TableID, Character->GetPersistentID(), Armor);
+			if (Armor.InstanceID.IsValid())
 			{
-				AddInventory(Armor.GetValue());
+				AddInventory(Armor);
 				bSuccess = true;
 			}
 		}
 		break;
 	case EWarInventoryType::Consumable:
 		{
-			const TOptional<FItemInBagData> Consumable = UWarDataManager::CreateConsumable(this, TableID, CachedOwnerCharacter->GetPersistentActorID());
-			if (Consumable.IsSet())
+			FItemInBagData Consumable;
+			UWarDataManager::CreateConsumable(this, TableID, Character->GetPersistentID(), Consumable);
+			if (Consumable.InstanceID.IsValid())
 			{
-				AddInventory(Consumable.GetValue());
+				AddInventory(Consumable);
 				bSuccess = true;
 			}
 		}
 		break;
 	case EWarInventoryType::QuestItem:
 		{
-			const TOptional<FItemInBagData> QuestItem = UWarDataManager::CreateQuestItem(this, TableID, CachedOwnerCharacter->GetPersistentActorID());
-			if (QuestItem.IsSet())
+			FItemInBagData QuestItem;
+			UWarDataManager::CreateQuestItem(this, TableID, Character->GetPersistentID(), QuestItem);
+			if (QuestItem.InstanceID.IsValid())
 			{
-				AddInventory(QuestItem.GetValue());
+				AddInventory(QuestItem);
 				bSuccess = true;
 			}
 		}
 		break;
 	case EWarInventoryType::Skill:
 		{
-			const TOptional<FItemInBagData> Skill = UWarDataManager::CreateSkill(this, TableID, CachedOwnerCharacter->GetPersistentActorID());
-			if (Skill.IsSet())
+			FItemInBagData Skill;
+			UWarDataManager::CreateSkill(this, TableID, Character->GetPersistentID(), Skill);
+			if (Skill.InstanceID.IsValid())
 			{
-				AddInventory(Skill.GetValue());
+				AddInventory(Skill);
 				bSuccess = true;
 			}
 		}
@@ -220,7 +222,7 @@ void UWarInventoryComponent::SpawnInventory(const FItemInBagData& InBagData)
 		TObjectPtr<AInventoryBase> InventoryActor = GetWorld()->SpawnActor<AInventoryBase>(LoadedClass, SpawnLocation, SpawnRotation, SpawnParameters);
 		if (!InventoryActor)
 		{
-				print_err(TEXT("装备InventoryActor 指针丢失"));
+			print_err(TEXT("装备InventoryActor 指针丢失"));
 			return;
 		}
 		//消除interaction的碰撞体

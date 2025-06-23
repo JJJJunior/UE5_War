@@ -24,8 +24,8 @@ protected:
 	TObjectPtr<USphereComponent> InteractionSphere; //主要用于和WarInteractionComponent进行overlap交互
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Inventory")
 	FName TableRowID;
-	UPROPERTY()
-	FGuid PersistentActorID;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Save")
+	FGuid PersistentID = FGuid();
 
 public:
 	AInventoryBase();
@@ -42,5 +42,6 @@ public:
 
 	virtual void SaveActorData(FMemoryWriter& MemoryWriter) const override;
 	virtual void LoadActorData(FMemoryReader& MemoryReader) const override;
-	virtual FGuid GetPersistentActorID() const override { return PersistentActorID; };
+	FORCEINLINE virtual FGuid GetPersistentID() const override { return PersistentID; }
+	FORCEINLINE virtual void SetPersistentID(const FGuid& NewID) override { PersistentID = NewID; }
 };

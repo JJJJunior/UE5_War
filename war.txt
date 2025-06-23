@@ -17,6 +17,13 @@ CREATE INDEX IF NOT EXISTS idx_items_type ON inventoryitems (inventorytype);
 CREATE INDEX IF NOT EXISTS idx_items_template ON inventoryitems (tablerowid);
 
 
+CREATE TABLE IF NOT EXISTS actorstates (
+  actorguid TEXT PRIMARY KEY,
+  actorname TEXT,
+  saveslotname TEXT,
+  saveslotindex INTEGER
+);
+
 
 插入武器数据
 INSERT INTO inventoryitems (

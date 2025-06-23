@@ -19,8 +19,10 @@ void AInventoryBase::BeginPlay()
 	//不要乱删，否则无法destory
 	Super::BeginPlay();
 
-	PersistentActorID = UWarPersistentSystem::SetPersistentActorGuid();
+	//初始化ID
+	UWarPersistentSystem::GeneratorPersistentID(this);
 }
+
 
 void AInventoryBase::DisableInteractionSphere() const
 {

@@ -1,56 +1,54 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "SQLitePreparedStatement.h"
+#include "DataManager/DynamicData/InventoryData.h"
 #include "Templates/EnableIf.h"
-#include "War/DataManager/DynamicData/InventoryData.h"
-#include "War/GameInstance/WarGameInstanceSubSystem.h"
 #include "WarPersistentSystem.generated.h"
 
 
 class UWarDataManager;
-
-USTRUCT(Blueprintable)
-struct FWarSaveGameData
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	FGuid ActorGuid;
-	UPROPERTY()
-	FTransform ActorTransform;
-	UPROPERTY()
-	TArray<uint8> ActorData; //序列化
-};
 
 
 UCLASS()
 class WAR_API UWarPersistentSystem : public UObject
 {
 	GENERATED_BODY()
-
-protected:
-	UPROPERTY()
-	TArray<FWarSaveGameData> GameSavedActors;
+	//
+	// protected:
+	// 	UPROPERTY()
+	// 	TArray<FWarSaveGameData> GameSavedActors;
 
 public:
+	FString SaveSlotName = TEXT("DefaultGame");
+	int32 SaveSlotIndex = 0;
+
+	FString SavedGameDataFieldName;
+	FString SavedGameDataDBPath;
+	TSharedPtr<FJsonObject> SavedGameDataJsonDB;
+	FString InventoryFieldName;
+	FString InventoryDBPath;
+	TSharedPtr<FJsonObject> InventoryJsonDB;
+
+	static bool SaveJsonToFile(const FString& JsonSavePath, const TSharedPtr<FJsonObject>& JsonObject);
+	static bool InitJsonDB(const FString& JsonSavePath, TSharedPtr<FJsonObject>& OutJsonObject, const FString& DefaultFieldName, bool bInitAsArray);
+
+	void InsertSavedActor(const FWarSaveGameData& SaveGameData) const;
+	void UpdateSavedActor(const FWarSaveGameData& SaveGameData) const;
+	bool FindAllSavedActors(TArray<FWarSaveGameData>& OutResult) const;
+	bool RemoveSavedActorByID(const FGuid& InInstanceID) const;
+	bool MarkAsDestroyed(const FGuid& InInstanceID) const;
+
+	void InsertInventory(const FInventoryItemInDB& InventoryItemInDB) const;
+	bool FindInventoryByID(const FGuid& InventoryID, FInventoryItemInDB& OutResult) const;
+	bool FindAllInventoriesByPlayerID(const FGuid& InPlayerID, TArray<FInventoryItemInDB>& OutResult) const;
+
 	UWarPersistentSystem();
+
 	UFUNCTION(BlueprintCallable)
-	static void SaveGame(const UObject* WorldContextObject);
+	void SaveGame();
 	UFUNCTION(BlueprintCallable)
-	static void LoadGame(const UObject* WorldContextObject);
+	void LoadGame();
 
-	FORCEINLINE static FGuid SetPersistentActorGuid() { return FGuid::NewGuid(); }
-
-	static void DeleteAllInDB(const UObject* WorldContextObject);
-
-	static void CheckInventoriesInDB(const UObject* WorldContextObject);
-	static void InsertInventoryInDB(const UObject* WorldContextObject, const FInventoryItemInDB& InventoryItemInDB);
-	static void DeleteInventoryByIDInDB(const UObject* WorldContextObject, const FGuid& InstanceID, const FGuid& InPlayerID);
-	static bool UpdateInventoryDamageInDB(const UObject* WorldContextObject, const FGuid& PlayerID, const FGuid& InstanceID, float NewDamage);
-	static bool UpdateInventoryInDB(const UObject* WorldContextObject, const FInventoryItemInDB& InventoryItemInDB);
-
-	static TOptional<FInventoryItemInDB> GetInventoryByIDInDB(const UObject* WorldContextObject, const FGuid& InstanceID, const FGuid& InPlayerID);
-	static TArray<FInventoryItemInDB> GetAllInventoryInDB(const UObject* WorldContextObject, const FGuid& InPlayerID);
-	static TArray<FInventoryItemInDB> GetInventoryItemsByTypes(const UObject* WorldContextObject, const EWarInventoryType& InventoryType, const FGuid& InPlayerID);
+	//用于全部需要保存动态的物体生成持久的ID
+	static void GeneratorPersistentID(AActor* Actor);
 };

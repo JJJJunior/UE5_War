@@ -1,13 +1,15 @@
-﻿#include "War/DataManager/DynamicData/InventoryData.h"
+﻿#include "WarDataManager.h"
+#include "GameInstance/WarGameInstanceSubSystem.h"
+#include "War/DataManager/DynamicData/InventoryData.h"
 #include "War/WarComponents/PersistentSystem/WarPersistentSystem.h"
-#include "WarDataManager.h"
 #include "Tools/MyLog.h"
+#include "WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
 
-TOptional<FItemInBagData> UWarDataManager::CreateWeapon(const UObject* WorldContextObject, const FName& TableID, const FGuid& InPlayerID)
+bool UWarDataManager::CreateWeapon(const UObject* WorldContextObject, const FName& TableID, const FGuid& InPlayerID, FItemInBagData& ItemInBagData)
 {
-	if (!WorldContextObject) return TOptional<FItemInBagData>();
+	if (!WorldContextObject) return false;
 	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(WorldContextObject, TableID);
-	if (!ItemRow) return TOptional<FItemInBagData>();
+	if (!ItemRow) return false;
 	if (ItemRow->InventoryType == EWarInventoryType::Weapon)
 	{
 		FInventoryItemInDBParams Params;
@@ -23,22 +25,25 @@ TOptional<FItemInBagData> UWarDataManager::CreateWeapon(const UObject* WorldCont
 		print(TEXT("CreateWeapon.Params.PlayerID  %s"), *Params.PlayerID.ToString())
 
 		const FInventoryItemInDB& NewWeapon = FInventoryItemInDB::Init(Params);
+		UWarGameInstanceSubSystem* Subsystem = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
+		if (!Subsystem) return false;
+		UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
+		if (!PersistentSystem) return false;
+		PersistentSystem->InsertInventory(NewWeapon);
 
-		//持久化存储 sqlite
-		UWarPersistentSystem::InsertInventoryInDB(WorldContextObject, NewWeapon);
 		//构造背包数据
-		const FItemInBagData& BagData = FItemInBagData::CreateInBagData(Params.InstanceID, Params.TableRowID, Params.Count, Params.InventoryType);
-		return BagData;
+		ItemInBagData = FItemInBagData::CreateInBagData(Params.InstanceID, Params.TableRowID, Params.Count, Params.InventoryType);
+		return true;
 	}
-	return TOptional<FItemInBagData>();
+	return false;
 }
 
 
-TOptional<FItemInBagData> UWarDataManager::CreateArmor(const UObject* WorldContextObject, const FName& TableID, const FGuid& InPlayerID)
+bool UWarDataManager::CreateArmor(const UObject* WorldContextObject, const FName& TableID, const FGuid& InPlayerID, FItemInBagData& ItemInBagData)
 {
-	if (!WorldContextObject) return TOptional<FItemInBagData>();
+	if (!WorldContextObject) return false;
 	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(WorldContextObject, TableID);
-	if (!ItemRow) return TOptional<FItemInBagData>();
+	if (!ItemRow) return false;
 	if (ItemRow->InventoryType == EWarInventoryType::Armor)
 	{
 		FInventoryItemInDBParams Params;
@@ -51,21 +56,24 @@ TOptional<FItemInBagData> UWarDataManager::CreateArmor(const UObject* WorldConte
 		Params.Durability = 100;
 
 		const FInventoryItemInDB& NewArmor = FInventoryItemInDB::Init(Params);
-
-		//持久化存储 sqlite
-		UWarPersistentSystem::InsertInventoryInDB(WorldContextObject, NewArmor);
+		//持久化存储
+		UWarGameInstanceSubSystem* Subsystem = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
+		if (!Subsystem) return false;
+		UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
+		if (!PersistentSystem) return false;
+		PersistentSystem->InsertInventory(NewArmor);
 		//构造背包数据
-		const FItemInBagData& BagData = FItemInBagData::CreateInBagData(Params.InstanceID, Params.TableRowID, Params.Count, Params.InventoryType);
-		return BagData;
+		ItemInBagData = FItemInBagData::CreateInBagData(Params.InstanceID, Params.TableRowID, Params.Count, Params.InventoryType);
+		return true;
 	}
-	return TOptional<FItemInBagData>();
+	return false;
 }
 
-TOptional<FItemInBagData> UWarDataManager::CreateConsumable(const UObject* WorldContextObject, const FName& TableID, const FGuid& InPlayerID)
+bool UWarDataManager::CreateConsumable(const UObject* WorldContextObject, const FName& TableID, const FGuid& InPlayerID, FItemInBagData& ItemInBagData)
 {
-	if (!WorldContextObject) return TOptional<FItemInBagData>();
+	if (!WorldContextObject) return false;
 	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(WorldContextObject, TableID);
-	if (!ItemRow) return TOptional<FItemInBagData>();
+	if (!ItemRow) return false;
 	if (ItemRow->InventoryType == EWarInventoryType::Consumable)
 	{
 		FInventoryItemInDBParams Params;
@@ -77,20 +85,24 @@ TOptional<FItemInBagData> UWarDataManager::CreateConsumable(const UObject* World
 		Params.Amount = 0.f;
 
 		const FInventoryItemInDB& NewConsumable = FInventoryItemInDB::Init(Params);
-		//持久化存储 sqlite
-		UWarPersistentSystem::InsertInventoryInDB(WorldContextObject, NewConsumable);
+		//持久化存储
+		UWarGameInstanceSubSystem* Subsystem = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
+		if (!Subsystem) return false;
+		UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
+		if (!PersistentSystem) return false;
+		PersistentSystem->InsertInventory(NewConsumable);
 		//构造背包数据
-		const FItemInBagData& BagData = FItemInBagData::CreateInBagData(Params.InstanceID, Params.TableRowID, Params.Count, Params.InventoryType);
-		return BagData;
+		ItemInBagData = FItemInBagData::CreateInBagData(Params.InstanceID, Params.TableRowID, Params.Count, Params.InventoryType);
+		return true;
 	}
-	return TOptional<FItemInBagData>();
+	return false;
 }
 
-TOptional<FItemInBagData> UWarDataManager::CreateQuestItem(const UObject* WorldContextObject, const FName& TableID, const FGuid& InPlayerID)
+bool UWarDataManager::CreateQuestItem(const UObject* WorldContextObject, const FName& TableID, const FGuid& InPlayerID, FItemInBagData& ItemInBagData)
 {
-	if (!WorldContextObject) return TOptional<FItemInBagData>();
+	if (!WorldContextObject) return false;
 	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(WorldContextObject, TableID);
-	if (!ItemRow) return TOptional<FItemInBagData>();
+	if (!ItemRow) return false;
 	if (ItemRow->InventoryType == EWarInventoryType::QuestItem)
 	{
 		FInventoryItemInDBParams Params;
@@ -103,20 +115,25 @@ TOptional<FItemInBagData> UWarDataManager::CreateQuestItem(const UObject* WorldC
 
 		const FInventoryItemInDB& NewQuest = FInventoryItemInDB::Init(Params);
 
-		//持久化存储 sqlite
-		UWarPersistentSystem::InsertInventoryInDB(WorldContextObject, NewQuest);
+		//持久化存储 
+		UWarGameInstanceSubSystem* Subsystem = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
+		if (!Subsystem) return false;
+		UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
+		if (!PersistentSystem) return false;
+		PersistentSystem->InsertInventory(NewQuest);
+
 		//构造背包数据
-		const FItemInBagData& BagData = FItemInBagData::CreateInBagData(Params.InstanceID, Params.TableRowID, Params.Count, Params.InventoryType);
-		return BagData;
+		ItemInBagData = FItemInBagData::CreateInBagData(Params.InstanceID, Params.TableRowID, Params.Count, Params.InventoryType);
+		return true;
 	}
-	return TOptional<FItemInBagData>();
+	return false;
 }
 
-TOptional<FItemInBagData> UWarDataManager::CreateSkill(const UObject* WorldContextObject, const FName& TableID, const FGuid& InPlayerID)
+bool UWarDataManager::CreateSkill(const UObject* WorldContextObject, const FName& TableID, const FGuid& InPlayerID, FItemInBagData& ItemInBagData)
 {
-	if (!WorldContextObject) return TOptional<FItemInBagData>();
+	if (!WorldContextObject) return false;
 	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(WorldContextObject, TableID);
-	if (!ItemRow) return TOptional<FItemInBagData>();
+	if (!ItemRow) return false;
 	if (ItemRow->InventoryType == EWarInventoryType::Skill)
 	{
 		FInventoryItemInDBParams Params;
@@ -129,11 +146,15 @@ TOptional<FItemInBagData> UWarDataManager::CreateSkill(const UObject* WorldConte
 
 		const FInventoryItemInDB& NewSkill = FInventoryItemInDB::Init(Params);
 
-		//持久化存储 sqlite
-		UWarPersistentSystem::InsertInventoryInDB(WorldContextObject, NewSkill);
+		//持久化存储 
+		UWarGameInstanceSubSystem* Subsystem = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
+		if (!Subsystem) return false;
+		UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
+		if (!PersistentSystem) return false;
+		PersistentSystem->InsertInventory(NewSkill);
 		//构造背包数据
-		const FItemInBagData& BagData = FItemInBagData::CreateInBagData(Params.InstanceID, Params.TableRowID, Params.Count, Params.InventoryType);
-		return BagData;
+		ItemInBagData = FItemInBagData::CreateInBagData(Params.InstanceID, Params.TableRowID, Params.Count, Params.InventoryType);
+		return true;
 	}
-	return TOptional<FItemInBagData>();
+	return false;
 }

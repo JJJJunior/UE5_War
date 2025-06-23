@@ -21,4 +21,6 @@ public:
 	FVector FollowCameraOffset;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GameConfig")
 	FVector FollowCameraNormal;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GameConfig")
+	FString StaticPlayerID;
 };

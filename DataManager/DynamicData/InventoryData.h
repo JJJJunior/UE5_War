@@ -6,6 +6,43 @@
 #include "InventoryData.generated.h"
 
 
+USTRUCT(Blueprintable)
+struct FWarSaveGameData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FGuid InstanceID = FGuid();
+
+	UPROPERTY()
+	int32 Count = 0;
+
+	UPROPERTY()
+	FSoftClassPath ActorClassPath = FSoftClassPath();
+
+	UPROPERTY()
+	FVector Location = FVector();
+
+	UPROPERTY()
+	FRotator Rotation = FRotator();
+
+	UPROPERTY()
+	FVector Scale = FVector();
+
+	UPROPERTY()
+	TArray<uint8> ActorData = TArray<uint8>(); //序列化
+
+	// ⚙️ 是否动态生成（重要）
+	UPROPERTY()
+	bool bIsDynamicActor = false;
+
+	//物体是否删除
+	UPROPERTY()
+	bool bIsDestroyed = false;
+
+	FWarSaveGameData() = default;
+};
+
 USTRUCT(BlueprintType)
 struct FItemInBagData
 {

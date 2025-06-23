@@ -25,10 +25,6 @@ protected:
 	// 焦点射线检测，当前可交互物体
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="MyConfig")
 	float CrosshairTraceDistance = 3000.f;
-	UPROPERTY()
-	TWeakObjectPtr<AWarHeroCharacter> CachedWarHeroCharacter;
-	UPROPERTY()
-	TWeakObjectPtr<AWarPlayerController> CachedWarPlayerController;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MyConfig")
 	AActor* CurrentInteractable = nullptr;
 	FVector CameraOffset = FVector::ZeroVector;

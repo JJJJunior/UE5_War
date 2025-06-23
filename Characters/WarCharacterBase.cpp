@@ -1,5 +1,9 @@
 ﻿#include "WarCharacterBase.h"
+
+#include "GameInstance/WarGameInstanceSubSystem.h"
+#include "Kismet/GameplayStatics.h"
 #include "WarComponents/PersistentSystem/WarPersistentSystem.h"
+
 
 AWarCharacterBase::AWarCharacterBase()
 {
@@ -9,24 +13,26 @@ AWarCharacterBase::AWarCharacterBase()
 void AWarCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//分配全局ID
+	UWarPersistentSystem::GeneratorPersistentID(this);
 }
 
 void AWarCharacterBase::SaveActorData(FMemoryWriter& MemoryWriter) const
 {
-	// 如果有其他数据（装备、技能CD等），继续写
-	// int32 HealthToSave = CurrentHealth;
-	// MemoryWriter << HealthToSave;
 }
 
 void AWarCharacterBase::LoadActorData(FMemoryReader& MemoryReader) const
 {
-	// 如果有其他数据（装备、技能CD等），继续读
-	//  MemoryReader << LoadedHealth;
-	//  CurrentHealth = LoadedHealth;
 }
 
-void AWarCharacterBase::PostInitializeComponents()
+FGuid AWarCharacterBase::GetPersistentID() const
 {
-	Super::PostInitializeComponents();
-	PersistentActorID = UWarPersistentSystem::SetPersistentActorGuid();
+	return PersistentID;
+}
+
+//人物ID需要固定，从配置文件拿
+void AWarCharacterBase::SetPersistentID(const FGuid& NewID)
+{
+	PersistentID = FGuid(UWarGameInstanceSubSystem::GetStaticPlayerID(this));
 }

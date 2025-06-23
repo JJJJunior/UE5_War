@@ -1,11 +1,10 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "DataManager/DynamicData/InventoryData.h"
 #include "GameFramework/SaveGame.h"
 #include "WarSaveGame.generated.h"
 
-
-struct FWarSaveGameData;
 
 UCLASS()
 class WAR_API UWarSaveGame : public USaveGame

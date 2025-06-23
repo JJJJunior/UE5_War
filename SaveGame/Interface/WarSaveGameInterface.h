@@ -19,5 +19,6 @@ class WAR_API IWarSaveGameInterface
 public:
 	virtual void SaveActorData(FMemoryWriter& MemoryWriter) const = 0;
 	virtual void LoadActorData(FMemoryReader& MemoryReader) const = 0;
-	virtual FGuid GetPersistentActorID() const = 0;
+	virtual FGuid GetPersistentID() const = 0;
+	virtual void SetPersistentID(const FGuid& NewID) = 0;
 };

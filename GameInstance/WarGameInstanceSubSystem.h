@@ -28,25 +28,21 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UDataTable> WarAbilityDataTable;
 
-
 	TSoftObjectPtr<UMaterialInstance> GetOutLineMaterial() const;
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	FSQLiteDatabase Database;
-	FString DatabasePath = FPaths::ProjectSavedDir() / TEXT("Database/war.db");
-
 public:
 	UFUNCTION(BlueprintCallable)
-	UWarPersistentSystem* GetWarPersistentSystem() const { return WarPersistentSystem; }
+	FORCEINLINE UWarPersistentSystem* GetWarPersistentSystem() { return WarPersistentSystem; }
 
 	UFUNCTION(BlueprintCallable)
-	UWarDataManager* GetUWarDataManager() const { return WarDataManager; }
+	FORCEINLINE UWarDataManager* GetUWarDataManager() const { return WarDataManager; }
 
 	FORCEINLINE TObjectPtr<UDataTable> GetCachedWarAbilityDataTable() const { return WarAbilityDataTable; }
 	FORCEINLINE TObjectPtr<UGameConfigData> GetCachedGameConfigData() const { return GameConfigData; }
 	//静态全局查找
 	static const FWarInventoryRow* FindInventoryRow(const UObject* WorldContextObject, const FName& TableRowID);
-	FSQLiteDatabase& GetDB() { return Database; }
+	static FString GetStaticPlayerID(const UObject* WorldContextObject);
 };

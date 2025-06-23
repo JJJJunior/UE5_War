@@ -6,8 +6,11 @@
 #include "ProjectCollision.h"
 #include "Components/SphereComponent.h"
 #include "Engine/World.h"
+#include "GameInstance/WarGameInstanceSubSystem.h"
+#include "Kismet/GameplayStatics.h"
 #include "Tools/MyLog.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
+#include "WarComponents/PersistentSystem/WarPersistentSystem.h"
 #include "WorldActors/Inventory/InventoryBase.h"
 
 
@@ -22,27 +25,17 @@ void UWarInteractionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CachedWarHeroCharacter = Cast<AWarHeroCharacter>(GetOwner());
-	CachedWarPlayerController = Cast<AWarPlayerController>(CachedWarHeroCharacter->Controller);
+	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwner());
+	if (!Character) return;
+	AWarPlayerController* PlayerController = Cast<AWarPlayerController>(Character->GetController());
+	if (!PlayerController) return;
 
-	if (!CachedWarHeroCharacter.IsValid())
-	{
-		UE_LOG(LogTemp, Error, TEXT("CachedWarHeroCharacter 弱指针无效"));
-		return;
-	}
-
-	if (!CachedWarPlayerController.IsValid())
-	{
-		UE_LOG(LogTemp, Error, TEXT("CachedWarPlayerController 弱指针无效"));
-		return;
-	}
-
-	InteractionSphereComponent->AttachToComponent(CachedWarHeroCharacter->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	InteractionSphereComponent->AttachToComponent(Character->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	InteractionSphereComponent->SetCollisionObjectType(InteractionComponent);
 	InteractionSphereComponent->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::BeginOnOverlap);
 	InteractionSphereComponent->OnComponentEndOverlap.AddDynamic(this, &ThisClass::EndOnOverlap);
 
-	TraceParams.AddIgnoredActor(CachedWarHeroCharacter.Get());
+	TraceParams.AddIgnoredActor(PlayerController);
 	TraceParams.bTraceComplex = true; // 是否使用复杂碰撞
 	TraceParams.bReturnPhysicalMaterial = false; //是否返回物理材质
 }
@@ -56,17 +49,20 @@ void UWarInteractionComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 //用于准星碰撞检测
 void UWarInteractionComponent::CrosshairTrace()
 {
+	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwner());
+	if (!Character) return;
+	AWarPlayerController* PlayerController = Cast<AWarPlayerController>(Character->GetController());
+	if (!PlayerController) return;
+
 	// 获取屏幕中心点
 	int32 ViewportSizeX, ViewportSizeY;
-	CachedWarPlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
+	PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
 	FVector2D ScreenCenter(ViewportSizeX / 2.f, ViewportSizeY / 2.f);
 	FVector WorldLocation; // 射线起点
 	FVector WorldDirection; // 射线方向
 
 	// 转换屏幕点到世界方向
-	bool bSuccess = CachedWarPlayerController->DeprojectScreenPositionToWorld(ScreenCenter.X, ScreenCenter.Y, WorldLocation, WorldDirection);
-
-	if (bSuccess)
+	if (PlayerController->DeprojectScreenPositionToWorld(ScreenCenter.X, ScreenCenter.Y, WorldLocation, WorldDirection))
 	{
 		FVector TraceEnd = WorldLocation + (WorldDirection * CrosshairTraceDistance);
 		FHitResult Hit;
@@ -116,10 +112,19 @@ void UWarInteractionComponent::BeginOnOverlap(UPrimitiveComponent* OverlappedCom
 			print_err(TEXT("Inventory Table Row ID is null"));
 			return;
 		}
-		if (CachedWarHeroCharacter->GetWarInventoryComponent()->GenerateItemToBagAndSaved(Inventory->GetTableRowID()))
+		AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwner());
+		if (!Character) return;
+		if (Character->GetWarInventoryComponent()->GenerateItemToBagAndSaved(Inventory->GetTableRowID()))
 		{
 			print(TEXT("发生了Overlap获取:%s"), *Inventory->GetTableRowID().ToString())
-			Inventory->Destroy();
+			UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
+			UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
+			if (PersistentSystem->MarkAsDestroyed(Inventory->GetPersistentID()))
+			{
+				Inventory->Destroy();
+				//标记删除，存档用
+				print(TEXT("销毁物品：%s 地址：%p"), *GetName(), this);
+			}
 		}
 	}
 }

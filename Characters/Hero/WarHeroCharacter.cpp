@@ -14,8 +14,8 @@
 #include "WarComponents/Input/WarInputComponent.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "WarComponents/InteractionSystem/WarInteractionComponent.h"
-#include "War/WarComponents/PersistentSystem/WarPersistentSystem.h"
 #include "WarComponents/InventorySystem/UI/RootPanel/RootPanelWidget.h"
+#include "WarComponents/PersistentSystem/WarPersistentSystem.h"
 
 
 AWarHeroCharacter::AWarHeroCharacter()
@@ -53,32 +53,28 @@ AWarHeroCharacter::AWarHeroCharacter()
 void AWarHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	WarSubSystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
-	if (!WarSubSystem.IsValid())
+	CachedWarSubSystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
+	if (!CachedWarSubSystem)
 	{
-		print(TEXT("WarSubSystem is invalid"));
+		print(TEXT("CachedWarSubSystem is invalid"));
 		return;
 	}
 	checkf(WarInventoryComponent, TEXT("WarInventoryComponent is NULL"));
 	checkf(WarInteractionComponent, TEXT("WarInteractionComponent is NULL"));
 
 	DisableTarget();
-
-	// print(TEXT("当前玩家的Guid: %s"), *this->PersistentActorID.ToString());
-	//自动加载存档
-	UWarPersistentSystem::LoadGame(this);
 }
 
 
 void AWarHeroCharacter::EnableTarget() const
 {
-	CameraBoom->SocketOffset = WarSubSystem->GetCachedGameConfigData()->FollowCameraOffset;
+	CameraBoom->SocketOffset = CachedWarSubSystem->GetCachedGameConfigData()->FollowCameraOffset;
 	GetWarInventoryComponent()->GetRootPanelWidget()->TargetWidget->SetVisibility(ESlateVisibility::Visible);
 }
 
 void AWarHeroCharacter::DisableTarget() const
 {
-	CameraBoom->SocketOffset = WarSubSystem->GetCachedGameConfigData()->FollowCameraNormal;
+	CameraBoom->SocketOffset = CachedWarSubSystem->GetCachedGameConfigData()->FollowCameraNormal;
 	GetWarInventoryComponent()->GetRootPanelWidget()->TargetWidget->SetVisibility(ESlateVisibility::Collapsed);
 }
 
@@ -189,4 +185,55 @@ void AWarHeroCharacter::StartCooldown(const float& CooldownTime)
 void AWarHeroCharacter::ResetCooldown()
 {
 	bCanClick = true;
+}
+
+
+void AWarHeroCharacter::CheckAllActorStateInMemory() const
+{
+	UWarPersistentSystem* PersistentSystem = GetWarSubSystemInBP()->GetWarPersistentSystem();
+	TArray<FWarSaveGameData> ActorStateInDbs;
+	if (PersistentSystem->FindAllSavedActors(ActorStateInDbs))
+	{
+		if (!ActorStateInDbs.IsEmpty())
+		{
+			for (const auto& Item : ActorStateInDbs)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("%s %s"), *Item.InstanceID.ToString(), *Item.ActorClassPath.ToString()));
+			}
+		}
+		else
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("FWarSaveGameData 记录为空")));
+		}
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("FWarSaveGameData 查询失败")));
+	}
+}
+
+
+void AWarHeroCharacter::CheckAllInventoriesInMemory() const
+{
+	UWarPersistentSystem* PersistentSystem = GetWarSubSystemInBP()->GetWarPersistentSystem();
+	TArray<FInventoryItemInDB> Inventories;
+	if (PersistentSystem->FindAllInventoriesByPlayerID(PersistentID, Inventories))
+	{
+		if (!Inventories.IsEmpty())
+		{
+			for (const auto& Item : Inventories)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 7.0f, FColor::Yellow, FString::Printf(TEXT("%s -- %s -- [%d]"), *Item.TableRowID.ToString(), *Item.InstanceID.ToString(), Item.Count));
+				print(TEXT("%s -- %s -- [%d]"), *Item.TableRowID.ToString(), *Item.InstanceID.ToString(), Item.Count);
+			}
+		}
+		else
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("FInventoryItemInDB 记录为空")));
+		}
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("FInventoryItemInDB 查询失败")));
+	}
 }

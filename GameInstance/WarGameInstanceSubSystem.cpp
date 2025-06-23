@@ -41,26 +41,11 @@ void UWarGameInstanceSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogTemp, Error, TEXT("WarDataManager is NULL"));
 		return;
 	}
-
-	// 初始化时打开数据库连接
-	if (!Database.Open(*DatabasePath, ESQLiteDatabaseOpenMode::ReadWriteCreate))
-	{
-		// 执行 PRAGMA 允许同时两个操作数据库
-		Database.Execute(TEXT("PRAGMA journal_mode=WAL;"));
-	}
-
-	//初始化游戏删除全部数据
-	UWarPersistentSystem::DeleteAllInDB(this);
 }
 
 
 void UWarGameInstanceSubSystem::Deinitialize()
 {
-	//游戏实例销毁关闭连接
-	if (Database.IsValid())
-	{
-		Database.Close();
-	}
 	Super::Deinitialize();
 }
 
@@ -90,4 +75,20 @@ const FWarInventoryRow* UWarGameInstanceSubSystem::FindInventoryRow(const UObjec
 		return nullptr;
 	}
 	return FindItemRow;
+}
+
+FString UWarGameInstanceSubSystem::GetStaticPlayerID(const UObject* WorldContextObject)
+{
+	if (!WorldContextObject)
+	{
+		print(TEXT("WorldContextObject 不存在"))
+		return FString();
+	}
+	UWarGameInstanceSubSystem* Subsystem = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
+	if (!Subsystem || !Subsystem->WarInventoryDataTable)
+	{
+		print(TEXT("Subsystem or WarInventoryDataTable 不存在"))
+		return FString();
+	}
+	return Subsystem->GameConfigData->StaticPlayerID;
 }
