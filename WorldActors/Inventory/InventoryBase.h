@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "War/WarComponents/InteractionSystem/Interface/InteractableInterface.h"
-#include "War/SaveGame/Interface/WarSaveGameInterface.h"
+#include "War/WarComponents/PersistentSystem/Interface/WarSaveGameInterface.h"
 #include "InventoryBase.generated.h"
 
 
@@ -38,10 +38,10 @@ public:
 	virtual void BeginPlay() override;
 	//关闭碰撞体
 	void DisableInteractionSphere() const;
-	FName GetTableRowID() const { return TableRowID; }
 
 	virtual void SaveActorData(FMemoryWriter& MemoryWriter) const override;
 	virtual void LoadActorData(FMemoryReader& MemoryReader) const override;
 	FORCEINLINE virtual FGuid GetPersistentID() const override { return PersistentID; }
 	FORCEINLINE virtual void SetPersistentID(const FGuid& NewID) override { PersistentID = NewID; }
+	FORCEINLINE virtual FName GetTableRowID() const override { return TableRowID; }
 };

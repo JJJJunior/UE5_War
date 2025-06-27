@@ -26,10 +26,6 @@ void AWarCharacterBase::LoadActorData(FMemoryReader& MemoryReader) const
 {
 }
 
-FGuid AWarCharacterBase::GetPersistentID() const
-{
-	return PersistentID;
-}
 
 //人物ID需要固定，从配置文件拿
 void AWarCharacterBase::SetPersistentID(const FGuid& NewID)

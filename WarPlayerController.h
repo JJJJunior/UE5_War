@@ -21,5 +21,5 @@ public:
 	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable, Category="PlayerControllerNotify")
-	void RefreshInputMode(bool bInventoryVisible, bool bCharacterVisible);
+	void RefreshInputMode(bool bInventoryVisible);
 };

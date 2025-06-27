@@ -13,10 +13,6 @@ UCLASS()
 class WAR_API UWarPersistentSystem : public UObject
 {
 	GENERATED_BODY()
-	//
-	// protected:
-	// 	UPROPERTY()
-	// 	TArray<FWarSaveGameData> GameSavedActors;
 
 public:
 	FString SaveSlotName = TEXT("DefaultGame");
@@ -39,7 +35,13 @@ public:
 	bool MarkAsDestroyed(const FGuid& InInstanceID) const;
 
 	void InsertInventory(const FInventoryItemInDB& InventoryItemInDB) const;
-	bool FindInventoryByID(const FGuid& InventoryID, FInventoryItemInDB& OutResult) const;
+	void UpdateInventory(const FInventoryItemInDB& InventoryItemInDB) const;
+	bool MarkAsEquipped(const FGuid& InventoryID, const FGuid& PlayerID) const;
+	bool MarkAsUnEquipped(const FGuid& InventoryID, const FGuid& PlayerID) const;
+	bool FindEquippedInventory(const FGuid& InventoryID, const FGuid& PlayerID, TArray<FInventoryItemInDB>& OurResult) const;
+	bool HasInventory(const FGuid& InventoryID, const FGuid& PlayerID) const;
+	bool HasEquipped(const FGuid& InventoryID, const FGuid& PlayerID) const;
+	bool FindInventoryByID(const FGuid& InventoryID, const FGuid& PlayerID, FInventoryItemInDB& OutResult) const;
 	bool FindAllInventoriesByPlayerID(const FGuid& InPlayerID, TArray<FInventoryItemInDB>& OutResult) const;
 
 	UWarPersistentSystem();

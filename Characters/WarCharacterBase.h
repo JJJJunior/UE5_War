@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "war/SaveGame/Interface/WarSaveGameInterface.h"
+#include "War/WarComponents/PersistentSystem/Interface/WarSaveGameInterface.h"
 #include "WarCharacterBase.generated.h"
 
 
@@ -14,14 +14,17 @@ class WAR_API AWarCharacterBase : public ACharacter, public IWarSaveGameInterfac
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save")
 	FGuid PersistentID = FGuid();
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save")
+	FName TableRowID = FName();
 
 public:
 	AWarCharacterBase();
 
 	virtual void BeginPlay() override;
 
-	virtual void SaveActorData(FMemoryWriter& MemoryWriter) const override;
-	virtual void LoadActorData(FMemoryReader& MemoryReader) const override;
-	virtual FGuid GetPersistentID() const override;
+	FORCEINLINE virtual void SaveActorData(FMemoryWriter& MemoryWriter) const override;
+	FORCEINLINE virtual void LoadActorData(FMemoryReader& MemoryReader) const override;
+	FORCEINLINE virtual FGuid GetPersistentID() const override { return PersistentID; };
 	virtual void SetPersistentID(const FGuid& NewID) override;
+	FORCEINLINE virtual FName GetTableRowID() const override { return TableRowID; }
 };

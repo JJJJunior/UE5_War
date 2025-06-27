@@ -21,4 +21,5 @@ public:
 	virtual void LoadActorData(FMemoryReader& MemoryReader) const = 0;
 	virtual FGuid GetPersistentID() const = 0;
 	virtual void SetPersistentID(const FGuid& NewID) = 0;
+	virtual FName GetTableRowID() const = 0;
 };

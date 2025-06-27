@@ -18,6 +18,9 @@ struct FWarSaveGameData
 	int32 Count = 0;
 
 	UPROPERTY()
+	FName TableRowID;
+
+	UPROPERTY()
 	FSoftClassPath ActorClassPath = FSoftClassPath();
 
 	UPROPERTY()
@@ -43,36 +46,28 @@ struct FWarSaveGameData
 	FWarSaveGameData() = default;
 };
 
-USTRUCT(BlueprintType)
-struct FItemInBagData
+
+USTRUCT()
+struct FItemDataInSlot
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
-	FGuid InstanceID = FGuid();
-	UPROPERTY()
-	FName TableRowID = FName();
-	UPROPERTY()
-	EWarInventoryType InventoryType = EWarInventoryType::None;
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, Category="UI")
+	bool bIsFull = false;
+	UPROPERTY(VisibleAnywhere, Category="UI")
+	int32 MaxCount = 0;
+	UPROPERTY(VisibleAnywhere, Category="UI")
 	int32 Count = 0;
+	UPROPERTY(VisibleAnywhere, Category="UI")
+	FGuid InstanceID = FGuid();
+	UPROPERTY(VisibleAnywhere, Category="UI")
+	FName TableRowID = FName();
+	UPROPERTY(VisibleAnywhere, Category="UI")
+	TObjectPtr<UTexture2D> Texture = nullptr;
+	UPROPERTY(VisibleAnywhere, Category="UI")
+	ESlotType SlotType = ESlotType::None;
 
-	FItemInBagData() = default;
-
-	static FItemInBagData CreateInBagData(const FGuid& InstanceID, const FName& TableRowID, const int32 Count, const EWarInventoryType& InventoryType)
-	{
-		FItemInBagData NewData;
-		NewData.InstanceID = InstanceID;
-		NewData.TableRowID = TableRowID;
-		NewData.InventoryType = InventoryType;
-		NewData.Count = Count;
-		return NewData;
-	}
-
-	bool operator==(const FItemInBagData& Other) const
-	{
-		return InventoryType == Other.InventoryType && InstanceID == Other.InstanceID && TableRowID == Other.TableRowID;
-	}
+	FItemDataInSlot() = default;
 };
 
 
@@ -105,6 +100,9 @@ struct FInventoryItemInDBParams
 
 	UPROPERTY(EditAnywhere)
 	EWarInventoryType InventoryType = EWarInventoryType::None;
+
+	UPROPERTY(EditAnywhere)
+	bool bIsEquipped = false;
 
 	// 武器专用
 	UPROPERTY(EditAnywhere)
@@ -155,6 +153,9 @@ struct FInventoryItemInDB
 	UPROPERTY(EditAnywhere)
 	EWarInventoryType InventoryType = EWarInventoryType::None;
 
+	UPROPERTY(EditAnywhere)
+	bool bIsEquipped = false;
+
 	// 武器专用
 	UPROPERTY(EditAnywhere)
 	float Damage = 0.0f;
@@ -182,6 +183,7 @@ struct FInventoryItemInDB
 		NewData.InventoryType = Params.InventoryType;
 		NewData.Count = Params.Count;
 		NewData.Level = Params.Level;
+		NewData.bIsEquipped = Params.bIsEquipped;
 		NewData.Cooldown = Params.Cooldown;
 		NewData.Durability = Params.Durability;
 		NewData.Damage = Params.Damage;

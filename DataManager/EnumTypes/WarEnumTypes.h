@@ -17,7 +17,7 @@ enum class EWarInventoryType: uint8
 
 
 UENUM(BlueprintType)
-enum class EEquipmentSlotType:uint8
+enum class ESlotType:uint8
 {
 	None = 0,
 	Head,
@@ -29,4 +29,6 @@ enum class EEquipmentSlotType:uint8
 	RightHand,
 	Ring1,
 	Ring2,
+	Skill,
+	Normal
 };

@@ -28,7 +28,7 @@ struct FWarInventoryRow : public FTableRowBase
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	EWarInventoryType InventoryType = EWarInventoryType::None;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	EEquipmentSlotType EquipmentSlotType = EEquipmentSlotType::None;
+	ESlotType SlotType = ESlotType::None;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	FName SocketName;
 };

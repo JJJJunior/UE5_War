@@ -53,29 +53,39 @@ AWarHeroCharacter::AWarHeroCharacter()
 void AWarHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	CachedWarSubSystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
-	if (!CachedWarSubSystem)
-	{
-		print(TEXT("CachedWarSubSystem is invalid"));
-		return;
-	}
+
 	checkf(WarInventoryComponent, TEXT("WarInventoryComponent is NULL"));
 	checkf(WarInteractionComponent, TEXT("WarInteractionComponent is NULL"));
 
 	DisableTarget();
+
+	// if (UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>())
+	// {
+	// 	FTimerHandle TimerHandle;
+	// 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this,Subsystem]()
+	// 	{
+	// 		Subsystem->GetWarPersistentSystem()->LoadGame();
+	// 	}, 0.5f, false);
+	// }
 }
 
 
 void AWarHeroCharacter::EnableTarget() const
 {
-	CameraBoom->SocketOffset = CachedWarSubSystem->GetCachedGameConfigData()->FollowCameraOffset;
-	GetWarInventoryComponent()->GetRootPanelWidget()->TargetWidget->SetVisibility(ESlateVisibility::Visible);
+	if (UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>())
+	{
+		CameraBoom->SocketOffset = Subsystem->GetCachedGameConfigData()->FollowCameraOffset;
+		GetWarInventoryComponent()->GetRootPanelWidget()->TargetWidget->SetVisibility(ESlateVisibility::Visible);
+	}
 }
 
 void AWarHeroCharacter::DisableTarget() const
 {
-	CameraBoom->SocketOffset = CachedWarSubSystem->GetCachedGameConfigData()->FollowCameraNormal;
-	GetWarInventoryComponent()->GetRootPanelWidget()->TargetWidget->SetVisibility(ESlateVisibility::Collapsed);
+	if (UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>())
+	{
+		CameraBoom->SocketOffset = Subsystem->GetCachedGameConfigData()->FollowCameraNormal;
+		GetWarInventoryComponent()->GetRootPanelWidget()->TargetWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 
@@ -92,7 +102,6 @@ void AWarHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		WarInputComponent->BindNativeInputAction(WarInputConfig, WarGameTags::Input_LightAttack, ETriggerEvent::Triggered, this, &ThisClass::LightAttack);
 		WarInputComponent->BindNativeInputAction(WarInputConfig, WarGameTags::Input_HeavyAttack, ETriggerEvent::Triggered, this, &ThisClass::HeavyAttack);
 		WarInputComponent->BindNativeInputAction(WarInputConfig, WarGameTags::Input_Inventory, ETriggerEvent::Completed, this, &ThisClass::ToggleInventoryUI);
-		WarInputComponent->BindNativeInputAction(WarInputConfig, WarGameTags::Input_Character, ETriggerEvent::Completed, this, &ThisClass::ToggleCharacterUI);
 	}
 }
 
@@ -110,14 +119,6 @@ void AWarHeroCharacter::ToggleInventoryUI(const FInputActionValue& Value)
 	if (WarInventoryComponent)
 	{
 		WarInventoryComponent->ToggleInventoryUI();
-	}
-}
-
-void AWarHeroCharacter::ToggleCharacterUI(const FInputActionValue& Value)
-{
-	if (WarInventoryComponent)
-	{
-		WarInventoryComponent->ToggleCharacterUI();
 	}
 }
 
@@ -190,7 +191,9 @@ void AWarHeroCharacter::ResetCooldown()
 
 void AWarHeroCharacter::CheckAllActorStateInMemory() const
 {
-	UWarPersistentSystem* PersistentSystem = GetWarSubSystemInBP()->GetWarPersistentSystem();
+	UWarGameInstanceSubSystem* SubSystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
+	if (!SubSystem) return;
+	UWarPersistentSystem* PersistentSystem = SubSystem->GetWarPersistentSystem();
 	TArray<FWarSaveGameData> ActorStateInDbs;
 	if (PersistentSystem->FindAllSavedActors(ActorStateInDbs))
 	{
@@ -215,7 +218,9 @@ void AWarHeroCharacter::CheckAllActorStateInMemory() const
 
 void AWarHeroCharacter::CheckAllInventoriesInMemory() const
 {
-	UWarPersistentSystem* PersistentSystem = GetWarSubSystemInBP()->GetWarPersistentSystem();
+	UWarGameInstanceSubSystem* SubSystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
+	if (!SubSystem) return;
+	UWarPersistentSystem* PersistentSystem = SubSystem->GetWarPersistentSystem();
 	TArray<FInventoryItemInDB> Inventories;
 	if (PersistentSystem->FindAllInventoriesByPlayerID(PersistentID, Inventories))
 	{
@@ -235,5 +240,14 @@ void AWarHeroCharacter::CheckAllInventoriesInMemory() const
 	else
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("FInventoryItemInDB 查询失败")));
+	}
+}
+
+void AWarHeroCharacter::AddSomeTestData() const
+{
+	TArray<FName> Items = {"Katana", "KatanaScabbard", "HealthPotion", "AnidotePotion", "InvisibilityPotion"};
+	for (const auto& Item : Items)
+	{
+		GetWarInventoryComponent()->GenerateItemToBagAndSaved(this, Item, this->GetPersistentID());
 	}
 }

@@ -63,7 +63,6 @@ protected:
 	void HeavyAttack(const FInputActionValue& Value);
 	void LightAttack(const FInputActionValue& Value);
 	void ToggleInventoryUI(const FInputActionValue& Value);
-	void ToggleCharacterUI(const FInputActionValue& Value);
 
 	void StartCooldown(const float& CooldownTime);
 	bool bCanClick = true;
@@ -73,8 +72,6 @@ protected:
 	TObjectPtr<UWarInventoryComponent> WarInventoryComponent;
 	UPROPERTY()
 	TObjectPtr<UWarInteractionComponent> WarInteractionComponent;
-	UPROPERTY()
-	TObjectPtr<UWarGameInstanceSubSystem> CachedWarSubSystem;
 
 public:
 	AWarHeroCharacter();
@@ -90,9 +87,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UWarInteractionComponent* GetWarInteractionComponent() const { return WarInteractionComponent; }
 
-	UFUNCTION(BlueprintCallable)
-	UWarGameInstanceSubSystem* GetWarSubSystemInBP() const { return CachedWarSubSystem.Get(); }
-
 	//开启比瞄准点，以及摄像机偏移
 	void EnableTarget() const;
 	void DisableTarget() const;
@@ -101,4 +95,6 @@ public:
 	void CheckAllActorStateInMemory() const;
 	UFUNCTION(BlueprintCallable)
 	void CheckAllInventoriesInMemory() const;
+	UFUNCTION(BlueprintCallable)
+	void AddSomeTestData() const;
 };

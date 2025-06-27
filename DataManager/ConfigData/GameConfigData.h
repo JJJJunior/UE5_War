@@ -5,6 +5,9 @@
 #include "GameConfigData.generated.h"
 
 
+class URootPanelWidget;
+class UInventoryPanelWidget;
+
 UCLASS()
 class WAR_API UGameConfigData : public UDataAsset
 {
@@ -23,4 +26,8 @@ public:
 	FVector FollowCameraNormal;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GameConfig")
 	FString StaticPlayerID;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="GameConfig")
+	TSubclassOf<URootPanelWidget> RootPanelWidgetClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="GameConfig")
+	TSubclassOf<UInventoryPanelWidget> InventoryPanelWidgetClass;
 };

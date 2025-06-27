@@ -114,7 +114,7 @@ void UWarInteractionComponent::BeginOnOverlap(UPrimitiveComponent* OverlappedCom
 		}
 		AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOwner());
 		if (!Character) return;
-		if (Character->GetWarInventoryComponent()->GenerateItemToBagAndSaved(Inventory->GetTableRowID()))
+		if (Character->GetWarInventoryComponent()->GenerateItemToBagAndSaved(this, Inventory->GetTableRowID(), Character->GetPersistentID()))
 		{
 			print(TEXT("发生了Overlap获取:%s"), *Inventory->GetTableRowID().ToString())
 			UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();

@@ -28,10 +28,9 @@ void AWarPlayerController::BeginPlay()
 }
 
 
-void AWarPlayerController::RefreshInputMode(bool bInventoryVisible, bool bCharacterVisible)
+void AWarPlayerController::RefreshInputMode(bool bInventoryVisible)
 {
-	//print(TEXT("bInventoryVisible %d  bCharacterVisible %d"), bInventoryVisible, bCharacterVisible);
-	if (!bInventoryVisible && !bCharacterVisible)
+	if (!bInventoryVisible)
 	{
 		SetShowMouseCursor(false);
 		FInputModeGameOnly InputMode;

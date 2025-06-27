@@ -2,16 +2,14 @@
 #include "EngineUtils.h"
 #include "DataManager/DynamicData/InventoryData.h"
 #include "GameInstance/WarGameInstanceSubSystem.h"
-#include "SaveGame/WarSaveGame.h"
-#include "Kismet/GameplayStatics.h"
+#include "War/WarComponents/PersistentSystem/Interface/WarSaveGameInterface.h"
 #include "Tools/MyLog.h"
-#include "SaveGame/Interface/WarSaveGameInterface.h"
 #include "Serialization/JsonWriter.h"
 #include "Serialization/JsonSerializer.h"
 #include "Misc/FileHelper.h"
 #include "HAL/PlatformFilemanager.h"
 #include "Misc/Paths.h"
-
+#include "War/WarComponents/PersistentSystem/WarJsonHelper.h"
 
 UWarPersistentSystem::UWarPersistentSystem()
 {
@@ -137,6 +135,7 @@ void UWarPersistentSystem::InsertSavedActor(const FWarSaveGameData& SaveGameData
 	// 3. 创建新的 Actor JSON 对象
 	TSharedPtr<FJsonObject> NewActorData = MakeShared<FJsonObject>();
 	NewActorData->SetStringField("InstanceID", SaveGameData.InstanceID.ToString());
+	NewActorData->SetStringField("TableRowID", SaveGameData.TableRowID.ToString());
 	NewActorData->SetNumberField("Count", SaveGameData.Count);
 	NewActorData->SetStringField("ActorClassPath", SaveGameData.ActorClassPath.ToString());
 	NewActorData->SetNumberField("LocationX", SaveGameData.Location.X);
@@ -187,6 +186,7 @@ void UWarPersistentSystem::UpdateSavedActor(const FWarSaveGameData& SaveGameData
 				// 3. 更新字段
 				ActorObject->SetNumberField("Count", SaveGameData.Count);
 				ActorObject->SetStringField("ActorClassPath", SaveGameData.ActorClassPath.ToString());
+				ActorObject->SetStringField("TableRowID", SaveGameData.TableRowID.ToString());
 				ActorObject->SetNumberField("LocationX", SaveGameData.Location.X);
 				ActorObject->SetNumberField("LocationY", SaveGameData.Location.Y);
 				ActorObject->SetNumberField("LocationZ", SaveGameData.Location.Z);
@@ -222,6 +222,12 @@ bool UWarPersistentSystem::FindAllSavedActors(TArray<FWarSaveGameData>& OutResul
 		return false;
 	}
 
+	if (SavedGameDataJsonDB->GetArrayField(SavedGameDataFieldName).IsEmpty())
+	{
+		print(TEXT("No SavedGame items found in the JSON DB."));
+		return false;
+	}
+
 	// 2. 获取 JSON 数组
 	const TArray<TSharedPtr<FJsonValue>>& SavedActorArray = SavedGameDataJsonDB->GetArrayField(SavedGameDataFieldName);
 
@@ -236,6 +242,7 @@ bool UWarPersistentSystem::FindAllSavedActors(TArray<FWarSaveGameData>& OutResul
 			FWarSaveGameData SavedActorInDB;
 			SavedActorInDB.InstanceID = FGuid(ActorObject->GetStringField(TEXT("InstanceID")));
 			SavedActorInDB.ActorClassPath = ActorObject->GetStringField(TEXT("ActorClassPath"));
+			SavedActorInDB.TableRowID = FName(*ActorObject->GetStringField(TEXT("TableRowID")));
 			SavedActorInDB.Count = ActorObject->GetIntegerField(TEXT("Count"));
 			SavedActorInDB.bIsDestroyed = ActorObject->GetBoolField(TEXT("bIsDestroyed"));
 			SavedActorInDB.bIsDynamicActor = ActorObject->GetBoolField(TEXT("bIsDynamicActor"));
@@ -265,6 +272,8 @@ bool UWarPersistentSystem::FindAllSavedActors(TArray<FWarSaveGameData>& OutResul
 
 bool UWarPersistentSystem::RemoveSavedActorByID(const FGuid& InInstanceID) const
 {
+	if (!InInstanceID.IsValid()) return false;
+
 	if (!SavedGameDataJsonDB.IsValid() || !SavedGameDataJsonDB->HasTypedField<EJson::Array>(SavedGameDataFieldName))
 	{
 		return false;
@@ -277,7 +286,8 @@ bool UWarPersistentSystem::RemoveSavedActorByID(const FGuid& InInstanceID) const
 	for (int32 i = ActorArray.Num() - 1; i >= 0; --i) // 逆序删除
 	{
 		TSharedPtr<FJsonObject> ActorObject = ActorArray[i]->AsObject();
-		if (ActorObject.IsValid() && ActorObject->GetStringField(TEXT("InstanceID")) == InInstanceID.ToString())
+		FGuid IDGuid;
+		if (WarJsonHelper::ExtractInventoryOnlyID(ActorObject, IDGuid) && IDGuid == InInstanceID)
 		{
 			ActorArray.RemoveAt(i);
 			print(TEXT("已移除存档中的 Actor: %s"), *InInstanceID.ToString());
@@ -291,6 +301,8 @@ bool UWarPersistentSystem::RemoveSavedActorByID(const FGuid& InInstanceID) const
 
 bool UWarPersistentSystem::MarkAsDestroyed(const FGuid& InInstanceID) const
 {
+	if (!InInstanceID.IsValid()) return false;
+
 	if (!SavedGameDataJsonDB.IsValid() || !SavedGameDataJsonDB->HasTypedField<EJson::Array>(SavedGameDataFieldName))
 	{
 		return false;
@@ -302,22 +314,22 @@ bool UWarPersistentSystem::MarkAsDestroyed(const FGuid& InInstanceID) const
 	for (const auto& Item : ActorArray)
 	{
 		TSharedPtr<FJsonObject> ActorObject = Item->AsObject();
-		if (!ActorObject.IsValid()) continue;
-
-		FString IDString;
-		if (ActorObject->TryGetStringField(TEXT("InstanceID"), IDString) && IDString == InInstanceID.ToString())
+		FGuid IDGuid;
+		if (WarJsonHelper::ExtractInventoryOnlyID(ActorObject, IDGuid) && IDGuid == InInstanceID)
 		{
 			ActorObject->SetBoolField("bIsDestroyed", true);
 			bSuccess = true;
 			break; // 一旦找到就退出
 		}
 	}
-
 	SavedGameDataJsonDB->SetArrayField(SavedGameDataFieldName, ActorArray);
 	return bSuccess;
 }
 
-
+/*
+ * PlayerID 和 TableID确定数据库中是否存在记录。
+ * 如果是可堆叠的物品，并且存在记录就将Count+1, 更新InstanceID覆盖掉原始InstanceID。
+ */
 void UWarPersistentSystem::InsertInventory(const FInventoryItemInDB& InventoryItemInDB) const
 {
 	if (!InventoryJsonDB.IsValid())
@@ -352,20 +364,20 @@ void UWarPersistentSystem::InsertInventory(const FInventoryItemInDB& InventoryIt
 		for (const TSharedPtr<FJsonValue>& Value : InventoryArray)
 		{
 			TSharedPtr<FJsonObject> ExistingInventory = Value->AsObject();
-			if (ExistingInventory.IsValid() && ExistingInventory->HasField(TEXT("InstanceID")))
+			FGuid PlayerIDGuid;
+			FName TableRowID;
+			// 可堆叠物品
+			if (WarJsonHelper::ExtractInventoryWithTable(ExistingInventory, PlayerIDGuid, TableRowID) && PlayerIDGuid == InventoryItemInDB.PlayerID && TableRowID == InventoryItemInDB.TableRowID)
 			{
-				// 可堆叠物品：InstanceID = TableRowID
-				if (ExistingInventory->GetStringField(TEXT("InstanceID")) == InventoryItemInDB.TableRowID.ToString())
-				{
-					// 找到已有物品，直接堆叠数量
-					int32 OldCount = ExistingInventory->GetIntegerField(TEXT("Count"));
-					ExistingInventory->SetNumberField(TEXT("Count"), OldCount + InventoryItemInDB.Count);
-
-					// 写回数据库
-					InventoryJsonDB->SetArrayField(InventoryFieldName, InventoryArray);
-					print(TEXT("堆叠物品成功: %s，当前数量: %d"), *InventoryItemInDB.TableRowID.ToString(), OldCount + InventoryItemInDB.Count);
-					return;
-				}
+				// 找到已有物品，直接堆叠数量
+				int32 OldCount = ExistingInventory->GetIntegerField(TEXT("Count"));
+				ExistingInventory->SetNumberField(TEXT("Count"), OldCount + InventoryItemInDB.Count);
+				// ✅ 覆盖 InstanceID
+				ExistingInventory->SetStringField(TEXT("InstanceID"), InventoryItemInDB.InstanceID.ToString());
+				// 写回数据库
+				InventoryJsonDB->SetArrayField(InventoryFieldName, InventoryArray);
+				print(TEXT("堆叠物品成功: %s，当前数量: %d"), *InventoryItemInDB.TableRowID.ToString(), OldCount + InventoryItemInDB.Count);
+				return;
 			}
 		}
 	}
@@ -378,6 +390,7 @@ void UWarPersistentSystem::InsertInventory(const FInventoryItemInDB& InventoryIt
 	NewData->SetNumberField("Amount", InventoryItemInDB.Amount);
 	NewData->SetNumberField("Cooldown", InventoryItemInDB.Cooldown);
 	NewData->SetNumberField("Count", InventoryItemInDB.Count);
+	NewData->SetBoolField("bIsEquipped", InventoryItemInDB.bIsEquipped);
 	NewData->SetNumberField("Damage", InventoryItemInDB.Damage);
 	NewData->SetNumberField("Defense", InventoryItemInDB.Defense);
 	NewData->SetNumberField("Durability", InventoryItemInDB.Durability);
@@ -402,8 +415,186 @@ void UWarPersistentSystem::InsertInventory(const FInventoryItemInDB& InventoryIt
 	print(TEXT("新物品已添加: %s"), *InventoryItemInDB.TableRowID.ToString());
 }
 
-bool UWarPersistentSystem::FindInventoryByID(const FGuid& InventoryID, FInventoryItemInDB& OutResult) const
+void UWarPersistentSystem::UpdateInventory(const FInventoryItemInDB& InventoryItemInDB) const
 {
+	if (!InventoryJsonDB.IsValid())
+	{
+		print(TEXT("InventoryJsonDB is invalid"));
+		return;
+	}
+
+	if (!InventoryJsonDB->HasField(InventoryFieldName))
+	{
+		print(TEXT("Inventory list is empty, update failed."));
+		return;
+	}
+
+	TArray<TSharedPtr<FJsonValue>> InventoryArray = InventoryJsonDB->GetArrayField(InventoryFieldName);
+
+	for (const TSharedPtr<FJsonValue>& Value : InventoryArray)
+	{
+		TSharedPtr<FJsonObject> ExistingInventory = Value->AsObject();
+		FGuid IDGuid;
+		if (WarJsonHelper::ExtractInventoryOnlyID(ExistingInventory, IDGuid) && IDGuid == InventoryItemInDB.InstanceID)
+		{
+			// ✅ 找到目标，更新所有字段
+			ExistingInventory->SetStringField("PlayerID", InventoryItemInDB.PlayerID.ToString());
+			ExistingInventory->SetStringField("TableRowID", InventoryItemInDB.TableRowID.ToString());
+			ExistingInventory->SetNumberField("InventoryType", static_cast<int32>(InventoryItemInDB.InventoryType));
+			ExistingInventory->SetNumberField("Amount", InventoryItemInDB.Amount);
+			ExistingInventory->SetNumberField("Cooldown", InventoryItemInDB.Cooldown);
+			ExistingInventory->SetNumberField("Count", InventoryItemInDB.Count);
+			ExistingInventory->SetNumberField("Damage", InventoryItemInDB.Damage);
+			ExistingInventory->SetBoolField("bIsEquipped", InventoryItemInDB.bIsEquipped);
+			ExistingInventory->SetNumberField("Defense", InventoryItemInDB.Defense);
+			ExistingInventory->SetNumberField("Durability", InventoryItemInDB.Durability);
+			ExistingInventory->SetNumberField("Level", InventoryItemInDB.Level);
+			ExistingInventory->SetStringField("QuestID", InventoryItemInDB.QuestID.ToString());
+
+			// 可选：更新时间戳字段，做版本控制
+			// ExistingInventory->SetStringField("LastModified", FDateTime::UtcNow().ToString());
+
+			// 写回数据库
+			InventoryJsonDB->SetArrayField(InventoryFieldName, InventoryArray);
+
+			print(TEXT("物品已更新: %s"), *InventoryItemInDB.InstanceID.ToString());
+			return;
+		}
+	}
+	print(TEXT("未找到需要更新的物品: %s"), *InventoryItemInDB.InstanceID.ToString());
+}
+
+//读写操作
+bool UWarPersistentSystem::MarkAsEquipped(const FGuid& InventoryID, const FGuid& PlayerID) const
+{
+	FInventoryItemInDB OldItem;
+	if (FindInventoryByID(InventoryID, PlayerID, OldItem))
+	{
+		OldItem.bIsEquipped = true;
+		UpdateInventory(OldItem);
+		return true;
+	}
+	return false;
+}
+
+bool UWarPersistentSystem::MarkAsUnEquipped(const FGuid& InventoryID, const FGuid& PlayerID) const
+{
+	FInventoryItemInDB OldItem;
+	if (FindInventoryByID(InventoryID, PlayerID, OldItem))
+	{
+		OldItem.bIsEquipped = false;
+		UpdateInventory(OldItem);
+		return true;
+	}
+	return false;
+}
+
+bool UWarPersistentSystem::FindEquippedInventory(const FGuid& InventoryID, const FGuid& PlayerID, TArray<FInventoryItemInDB>& OutResult) const
+{
+	if (!InventoryID.IsValid() || !PlayerID.IsValid()) return false;
+
+	if (!InventoryJsonDB.IsValid())
+	{
+		print(TEXT("InventoryJsonDB is invalid."));
+		return false;
+	}
+	// 1. 检查是否存在 "Inventories" 数组字段
+	if (!InventoryJsonDB->HasTypedField<EJson::Array>(InventoryFieldName))
+	{
+		print(TEXT("No Inventories found in the JSON DB."));
+		return false;
+	}
+
+	// 2. 获取 JSON 数组
+	const TArray<TSharedPtr<FJsonValue>>& InventoryArray = InventoryJsonDB->GetArrayField(InventoryFieldName);
+	bool bFoundAny = false;
+
+	// 3. 遍历 JSON 数组，查找指定 ActorName
+	for (const TSharedPtr<FJsonValue>& JsonValue : InventoryArray)
+	{
+		TSharedPtr<FJsonObject> InventoryObject = JsonValue->AsObject();
+		FGuid IDGuid, PlayerIDGuid;
+		bool bIsEquipped = false;
+
+		if (WarJsonHelper::ExtractEquippedInventoryKeys(InventoryObject, IDGuid, PlayerIDGuid, bIsEquipped) && IDGuid == InventoryID && PlayerIDGuid == PlayerID && bIsEquipped == true)
+		{
+			FInventoryItemInDB NewData;
+			NewData.InstanceID = FGuid(InventoryObject->GetStringField(TEXT("InstanceID")));
+			NewData.InventoryType = static_cast<EWarInventoryType>(InventoryObject->GetNumberField(TEXT("InventoryType")));
+			NewData.PlayerID = FGuid(InventoryObject->GetStringField(TEXT("PlayerID")));
+			//兼容tablerowid为空
+			if (InventoryObject->GetStringField(TEXT("TableRowID")) == TEXT("None"))
+			{
+				const FName OutTableRowID = FName();
+				NewData.TableRowID = OutTableRowID;
+			}
+			else
+			{
+				const FName OutTableRowID = FName(*InventoryObject->GetStringField(TEXT("TableRowID")));
+				NewData.TableRowID = OutTableRowID;
+			}
+			NewData.Damage = InventoryObject->GetNumberField(TEXT("Damage"));
+			NewData.Defense = InventoryObject->GetNumberField(TEXT("Defense"));
+			NewData.Amount = InventoryObject->GetNumberField(TEXT("Amount"));
+			NewData.bIsEquipped = InventoryObject->GetBoolField(TEXT("bIsEquipped"));
+			NewData.Cooldown = InventoryObject->GetNumberField(TEXT("Cooldown"));
+			NewData.Count = InventoryObject->GetNumberField(TEXT("Count"));
+			NewData.Durability = InventoryObject->GetNumberField(TEXT("Durability"));
+			NewData.Level = InventoryObject->GetNumberField(TEXT("Level"));
+			NewData.QuestID = FGuid(InventoryObject->GetStringField(TEXT("QuestID")));
+
+			OutResult.Add(NewData);
+			bFoundAny = true;
+		}
+	}
+	return bFoundAny;
+}
+
+bool UWarPersistentSystem::HasInventory(const FGuid& InventoryID, const FGuid& PlayerID) const
+{
+	if (!InventoryID.IsValid() || !PlayerID.IsValid()) return false;
+	if (!InventoryJsonDB.IsValid()) return false;
+	if (!InventoryJsonDB->HasField(InventoryFieldName)) return false;
+
+	const TArray<TSharedPtr<FJsonValue>> InventoryArray = InventoryJsonDB->GetArrayField(InventoryFieldName);
+
+	for (const TSharedPtr<FJsonValue>& Value : InventoryArray)
+	{
+		const TSharedPtr<FJsonObject> Obj = Value->AsObject();
+		FGuid IDGuid, PlayerIDGuid;
+		if (WarJsonHelper::ExtractInventoryKeys(Obj, IDGuid, PlayerIDGuid) && IDGuid == InventoryID && PlayerIDGuid == PlayerID)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool UWarPersistentSystem::HasEquipped(const FGuid& InventoryID, const FGuid& PlayerID) const
+{
+	if (!InventoryID.IsValid() || !PlayerID.IsValid()) return false;
+	if (!InventoryJsonDB.IsValid()) return false;
+	if (!InventoryJsonDB->HasField(InventoryFieldName)) return false;
+
+	const TArray<TSharedPtr<FJsonValue>> InventoryArray = InventoryJsonDB->GetArrayField(InventoryFieldName);
+
+	for (const TSharedPtr<FJsonValue>& Value : InventoryArray)
+	{
+		const TSharedPtr<FJsonObject> Obj = Value->AsObject();
+		FGuid IDGuid, PlayerIDGuid;
+		if (WarJsonHelper::ExtractInventoryKeys(Obj, IDGuid, PlayerIDGuid) && IDGuid == InventoryID && PlayerIDGuid == PlayerID)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+
+bool UWarPersistentSystem::FindInventoryByID(const FGuid& InventoryID, const FGuid& PlayerID, FInventoryItemInDB& OutResult) const
+{
+	if (!InventoryID.IsValid() || !PlayerID.IsValid()) return false;
+
 	if (!InventoryJsonDB.IsValid())
 	{
 		print(TEXT("InventoryJsonDB is invalid."));
@@ -424,25 +615,34 @@ bool UWarPersistentSystem::FindInventoryByID(const FGuid& InventoryID, FInventor
 	{
 		TSharedPtr<FJsonObject> InventoryObject = JsonValue->AsObject();
 
-		if (InventoryObject.IsValid() && InventoryObject->HasField(TEXT("InstanceID")))
+		FGuid IDGuid, PlayerIDGuid;
+		if (WarJsonHelper::ExtractInventoryKeys(InventoryObject, IDGuid, PlayerIDGuid) && IDGuid == InventoryID && PlayerIDGuid == PlayerID)
 		{
-			if (InventoryObject->GetStringField(TEXT("InstanceID")) == InventoryID.ToString())
+			// 映射 JSON 到 FActorStateInDB 结构体
+			OutResult.InstanceID = FGuid(InventoryObject->GetStringField(TEXT("InstanceID")));
+			OutResult.InventoryType = static_cast<EWarInventoryType>(InventoryObject->GetNumberField(TEXT("InventoryType")));
+			OutResult.PlayerID = FGuid(InventoryObject->GetStringField(TEXT("PlayerID")));
+			//兼容tablerowid为空
+			if (InventoryObject->GetStringField(TEXT("TableRowID")) == TEXT("None"))
 			{
-				// 映射 JSON 到 FActorStateInDB 结构体
-				OutResult.InstanceID = FGuid(InventoryObject->GetStringField(TEXT("InstanceID")));
-				OutResult.InventoryType = static_cast<EWarInventoryType>(InventoryObject->GetNumberField(TEXT("InventoryType")));
-				OutResult.PlayerID = FGuid(InventoryObject->GetStringField(TEXT("PlayerID")));
-				OutResult.TableRowID = FName(*InventoryObject->GetStringField(TEXT("TableRowID")));
-				OutResult.Damage = InventoryObject->GetNumberField(TEXT("Damage"));
-				OutResult.Defense = InventoryObject->GetNumberField(TEXT("Defense"));
-				OutResult.Amount = InventoryObject->GetNumberField(TEXT("Amount"));
-				OutResult.Cooldown = InventoryObject->GetNumberField(TEXT("Cooldown"));
-				OutResult.Count = InventoryObject->GetNumberField(TEXT("Count"));
-				OutResult.Durability = InventoryObject->GetNumberField(TEXT("Durability"));
-				OutResult.Level = InventoryObject->GetNumberField(TEXT("Level"));
-				OutResult.QuestID = FGuid(InventoryObject->GetStringField(TEXT("QuestID")));
-				return true;
+				const FName OutTableRowID = FName();
+				OutResult.TableRowID = OutTableRowID;
 			}
+			else
+			{
+				const FName OutTableRowID = FName(*InventoryObject->GetStringField(TEXT("TableRowID")));
+				OutResult.TableRowID = OutTableRowID;
+			}
+			OutResult.Damage = InventoryObject->GetNumberField(TEXT("Damage"));
+			OutResult.Defense = InventoryObject->GetNumberField(TEXT("Defense"));
+			OutResult.Amount = InventoryObject->GetNumberField(TEXT("Amount"));
+			OutResult.bIsEquipped = InventoryObject->GetBoolField(TEXT("bIsEquipped"));
+			OutResult.Cooldown = InventoryObject->GetNumberField(TEXT("Cooldown"));
+			OutResult.Count = InventoryObject->GetNumberField(TEXT("Count"));
+			OutResult.Durability = InventoryObject->GetNumberField(TEXT("Durability"));
+			OutResult.Level = InventoryObject->GetNumberField(TEXT("Level"));
+			OutResult.QuestID = FGuid(InventoryObject->GetStringField(TEXT("QuestID")));
+			return true;
 		}
 	}
 	return false;
@@ -473,28 +673,37 @@ bool UWarPersistentSystem::FindAllInventoriesByPlayerID(const FGuid& InPlayerID,
 	{
 		TSharedPtr<FJsonObject> InventoryObject = JsonValue->AsObject();
 
-		if (InventoryObject.IsValid() && InventoryObject->HasField(TEXT("PlayerID")))
+		FGuid PlayerIDGuid;
+		if (WarJsonHelper::ExtractInventoryOnlyPlayerID(InventoryObject, PlayerIDGuid) && PlayerIDGuid == InPlayerID)
 		{
-			if (InventoryObject->GetStringField(TEXT("PlayerID")) == InPlayerID.ToString())
+			FInventoryItemInDB NewData;
+
+			NewData.InstanceID = FGuid(InventoryObject->GetStringField(TEXT("InstanceID")));
+			NewData.InventoryType = static_cast<EWarInventoryType>(InventoryObject->GetNumberField(TEXT("InventoryType")));
+			NewData.PlayerID = FGuid(InventoryObject->GetStringField(TEXT("PlayerID")));
+			//兼容tablerowid为空
+			if (InventoryObject->GetStringField(TEXT("TableRowID")) == TEXT("None"))
 			{
-				FInventoryItemInDB NewData;
-
-				NewData.InstanceID = FGuid(InventoryObject->GetStringField(TEXT("InstanceID")));
-				NewData.InventoryType = static_cast<EWarInventoryType>(InventoryObject->GetNumberField(TEXT("InventoryType")));
-				NewData.PlayerID = FGuid(InventoryObject->GetStringField(TEXT("PlayerID")));
-				NewData.TableRowID = FName(*InventoryObject->GetStringField(TEXT("TableRowID")));
-				NewData.Damage = InventoryObject->GetNumberField(TEXT("Damage"));
-				NewData.Defense = InventoryObject->GetNumberField(TEXT("Defense"));
-				NewData.Amount = InventoryObject->GetNumberField(TEXT("Amount"));
-				NewData.Cooldown = InventoryObject->GetNumberField(TEXT("Cooldown"));
-				NewData.Count = InventoryObject->GetNumberField(TEXT("Count"));
-				NewData.Durability = InventoryObject->GetNumberField(TEXT("Durability"));
-				NewData.Level = InventoryObject->GetNumberField(TEXT("Level"));
-				NewData.QuestID = FGuid(InventoryObject->GetStringField(TEXT("QuestID")));
-
-				OutResult.Add(NewData);
-				bFoundAny = true;
+				const FName OutTableRowID = FName();
+				NewData.TableRowID = OutTableRowID;
 			}
+			else
+			{
+				const FName OutTableRowID = FName(*InventoryObject->GetStringField(TEXT("TableRowID")));
+				NewData.TableRowID = OutTableRowID;
+			}
+			NewData.Damage = InventoryObject->GetNumberField(TEXT("Damage"));
+			NewData.Defense = InventoryObject->GetNumberField(TEXT("Defense"));
+			NewData.Amount = InventoryObject->GetNumberField(TEXT("Amount"));
+			NewData.bIsEquipped = InventoryObject->GetBoolField(TEXT("bIsEquipped"));
+			NewData.Cooldown = InventoryObject->GetNumberField(TEXT("Cooldown"));
+			NewData.Count = InventoryObject->GetNumberField(TEXT("Count"));
+			NewData.Durability = InventoryObject->GetNumberField(TEXT("Durability"));
+			NewData.Level = InventoryObject->GetNumberField(TEXT("Level"));
+			NewData.QuestID = FGuid(InventoryObject->GetStringField(TEXT("QuestID")));
+
+			OutResult.Add(NewData);
+			bFoundAny = true;
 		}
 	}
 	return bFoundAny;
@@ -519,6 +728,7 @@ void UWarPersistentSystem::SaveGame()
 				FWarSaveGameData SavedGameData;
 				SavedGameData.bIsDestroyed = false;
 				SavedGameData.InstanceID = SaveInterface->GetPersistentID();
+				SavedGameData.TableRowID = SaveInterface->GetTableRowID();
 				// 保存时，区分动态和静态
 				SavedGameData.bIsDynamicActor = Actor->ActorHasTag(TEXT("DynamicActor"));
 				if (SavedGameData.bIsDynamicActor)
@@ -548,6 +758,14 @@ void UWarPersistentSystem::SaveGame()
 
 void UWarPersistentSystem::LoadGame()
 {
+	TArray<FWarSaveGameData> SaveGameDataArray;
+	bool bSuccess = FindAllSavedActors(SaveGameDataArray);
+	if (!bSuccess)
+	{
+		print(TEXT("FindAllSavedActors 执行失败！"))
+		return;
+	}
+
 	// 建立快速 Guid 映射表
 	TMap<FGuid, AActor*> GuidToActorMap;
 
@@ -561,18 +779,10 @@ void UWarPersistentSystem::LoadGame()
 		}
 	}
 
-	TArray<FWarSaveGameData> SaveGameDataArray;
-	FindAllSavedActors(SaveGameDataArray);
-
-	if (SaveGameDataArray.IsEmpty())
-	{
-		print(TEXT("未找到游戏记录"));
-		return;
-	}
-
 	//循环遍历次存档中Actors
 	for (const FWarSaveGameData& SavedGameData : SaveGameDataArray)
 	{
+		if (!SavedGameData.InstanceID.IsValid()) return;
 		// 恢复 Transform
 		FTransform NewTransform;
 		NewTransform.SetLocation(SavedGameData.Location);
