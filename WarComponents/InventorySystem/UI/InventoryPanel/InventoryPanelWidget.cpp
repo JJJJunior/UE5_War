@@ -5,9 +5,9 @@
 #include "Misc/StringBuilder.h"
 #include "Tools/MyLog.h"
 #include "Components/SizeBox.h"
+#include "DataManager/ConfigData/GameConfigData.h"
 #include "GameInstance/WarGameInstanceSubSystem.h"
 #include "Kismet/GameplayStatics.h"
-#include "WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
 #include "WarComponents/PersistentSystem/WarPersistentSystem.h"
 
 void UInventoryPanelWidget::NativeConstruct()
@@ -20,6 +20,7 @@ void UInventoryPanelWidget::NativeConstruct()
 		print(TEXT("CachedCharacter 弱指针无效"));
 		return;
 	}
+	MaxSlots = UWarGameInstanceSubSystem::GetGameConfigData(this)->MaxSlots;
 	InitSlots();
 }
 
@@ -109,7 +110,7 @@ void UInventoryPanelWidget::ClearAllSlots()
 // 添加物品（支持堆叠）
 void UInventoryPanelWidget::AddItemToSlot(const FInventoryItemInDB& InItemInDB)
 {
-	if (UItemSlotWidget* FindSlot = FindSuitableSlot(InItemInDB.TableRowID))
+	if (UItemSlotWidget* FindSlot = FindSuitableSlot(InItemInDB))
 	{
 		FindSlot->AddToSlot(InItemInDB);
 	}
@@ -117,31 +118,43 @@ void UInventoryPanelWidget::AddItemToSlot(const FInventoryItemInDB& InItemInDB)
 
 
 // 查找同类型且未满的格子
-UItemSlotWidget* UInventoryPanelWidget::FindSuitableSlot(const FName& TableRowID)
+UItemSlotWidget* UInventoryPanelWidget::FindSuitableSlot(const FInventoryItemInDB& InItemInDB)
 {
-	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, TableRowID);
-	if (!ItemRow) return nullptr;
-	// 1. 直接添加，格子判断
-	for (const TObjectPtr<UItemSlotWidget>& InSlot : InventorySlots)
+	const bool bCanStack = InItemInDB.InventoryType == EWarInventoryType::Consumable ||
+		InItemInDB.InventoryType == EWarInventoryType::QuestItem ||
+		InItemInDB.InventoryType == EWarInventoryType::Material;
+
+	if (bCanStack)
 	{
-		// print(TEXT("%s %d %d %d"), *InSlot->GetName(), InSlot->bInitFinished, InSlot->SlotData.bIsFull,InSlot->SlotData.SlotType);
-		if (InSlot->bInitFinished && !InSlot->SlotData.bIsFull && InSlot->SlotData.SlotType == ItemRow->SlotType)
+		// 1. 查找已有未满的堆叠格子
+		for (const TObjectPtr<UItemSlotWidget>& InSlot : InventorySlots)
 		{
-			// print(TEXT("找到了未满的格子%s"), *InSlot->GetName());
-			return InSlot;
+			if (!InSlot->SlotData.bIsFull && InSlot->bIsInitialized && InSlot->SlotData.TableRowID == InItemInDB.TableRowID)
+			{
+				return InSlot;
+			}
+		}
+
+		// 2. 没有堆叠目标？找空格子
+		for (const TObjectPtr<UItemSlotWidget>& InSlot : InventorySlots)
+		{
+			if (!InSlot->SlotData.bIsFull && InSlot->bIsInitialized && InSlot->SlotData.TableRowID.IsNone())
+			{
+				return InSlot;
+			}
 		}
 	}
-	return nullptr;
-}
-
-// 查找第一个空格子
-UItemSlotWidget* UInventoryPanelWidget::FindFirstEmptySlot()
-{
-	for (const TObjectPtr<UItemSlotWidget>& InSlot : InventorySlots)
+	else
 	{
-		if (!InSlot->SlotData.bIsFull)
+		// 不可堆叠：找空格子
+		for (const TObjectPtr<UItemSlotWidget>& InSlot : InventorySlots)
 		{
-			return InSlot;
+			if (!InSlot->SlotData.bIsFull &&
+				InSlot->bIsInitialized &&
+				InSlot->SlotData.TableRowID.IsNone())
+			{
+				return InSlot;
+			}
 		}
 	}
 	return nullptr;

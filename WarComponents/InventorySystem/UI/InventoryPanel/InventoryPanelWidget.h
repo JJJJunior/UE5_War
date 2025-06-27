@@ -52,7 +52,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
 	TArray<TObjectPtr<UItemSlotWidget>> InventorySlots;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
-	int32 MaxSlots = 24;
+	int32 MaxSlots = 0;
 	UPROPERTY()
 	TWeakObjectPtr<AWarHeroCharacter> CachedCharacter;
 
@@ -63,6 +63,5 @@ public:
 	virtual void ClearAllSlots();
 	virtual void AddItemToSlot(const FInventoryItemInDB& InItemInDB);
 	virtual int32 GetMaxSlots() const { return MaxSlots; }
-	UItemSlotWidget* FindSuitableSlot(const FName& TableRowID);
-	UItemSlotWidget* FindFirstEmptySlot();
+	UItemSlotWidget* FindSuitableSlot(const FInventoryItemInDB& InItemInDB);
 };

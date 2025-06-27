@@ -59,14 +59,14 @@ void AWarHeroCharacter::BeginPlay()
 
 	DisableTarget();
 
-	// if (UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>())
-	// {
-	// 	FTimerHandle TimerHandle;
-	// 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this,Subsystem]()
-	// 	{
-	// 		Subsystem->GetWarPersistentSystem()->LoadGame();
-	// 	}, 0.5f, false);
-	// }
+	if (UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>())
+	{
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this,Subsystem]()
+		{
+			Subsystem->GetWarPersistentSystem()->LoadGame();
+		}, 0.5f, false);
+	}
 }
 
 

@@ -346,7 +346,7 @@ bool UWarInventoryComponent::CreateWeapon(const UObject* WorldContextObject, con
 		if (!Subsystem) return false;
 		UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
 		if (!PersistentSystem) return false;
-		PersistentSystem->InsertInventory(NewWeapon);
+		PersistentSystem->InsertInventoryWithMax(NewWeapon);
 
 		return true;
 	}
@@ -376,7 +376,7 @@ bool UWarInventoryComponent::CreateArmor(const UObject* WorldContextObject, cons
 		if (!Subsystem) return false;
 		UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
 		if (!PersistentSystem) return false;
-		PersistentSystem->InsertInventory(NewArmor);
+		PersistentSystem->InsertInventoryWithMax(NewArmor);
 		return true;
 	}
 	return false;
@@ -403,7 +403,7 @@ bool UWarInventoryComponent::CreateConsumable(const UObject* WorldContextObject,
 		if (!Subsystem) return false;
 		UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
 		if (!PersistentSystem) return false;
-		PersistentSystem->InsertInventory(NewConsumable);
+		PersistentSystem->InsertInventoryWithMax(NewConsumable);
 
 		return true;
 	}
@@ -432,7 +432,7 @@ bool UWarInventoryComponent::CreateQuestItem(const UObject* WorldContextObject, 
 		if (!Subsystem) return false;
 		UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
 		if (!PersistentSystem) return false;
-		PersistentSystem->InsertInventory(NewQuest);
+		PersistentSystem->InsertInventoryWithMax(NewQuest);
 		return true;
 	}
 	return false;
@@ -460,7 +460,7 @@ bool UWarInventoryComponent::CreateSkill(const UObject* WorldContextObject, cons
 		if (!Subsystem) return false;
 		UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
 		if (!PersistentSystem) return false;
-		PersistentSystem->InsertInventory(NewSkill);
+		PersistentSystem->InsertInventoryWithMax(NewSkill);
 		return true;
 	}
 	return false;
@@ -480,7 +480,7 @@ bool UWarInventoryComponent::GenerateItemToBagAndSaved(const UObject* WorldConte
 		CreateArmor(WorldContextObject, TableID, PlayerID);
 		return true;
 	case EWarInventoryType::Consumable:
-		CreateWeapon(WorldContextObject, TableID, PlayerID);
+		CreateConsumable(WorldContextObject, TableID, PlayerID);
 		return true;
 	case EWarInventoryType::Weapon:
 		CreateWeapon(WorldContextObject, TableID, PlayerID);

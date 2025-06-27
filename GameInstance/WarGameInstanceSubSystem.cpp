@@ -1,6 +1,5 @@
 ﻿#include "WarGameInstanceSubSystem.h"
 #include "War/DataManager/ConfigData/GameConfigData.h"
-#include "War/DataManager/WarDataManager.h"
 #include "War/WarComponents/PersistentSystem/WarPersistentSystem.h"
 #include "Tools/MyLog.h"
 
@@ -34,13 +33,7 @@ void UWarGameInstanceSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogTemp, Error, TEXT("WarPersistentSystem is NULL"));
 		return;
 	}
-
-	WarDataManager = NewObject<UWarDataManager>(this);
-	if (!IsValid(WarDataManager))
-	{
-		UE_LOG(LogTemp, Error, TEXT("WarDataManager is NULL"));
-		return;
-	}
+	
 }
 
 
@@ -75,6 +68,23 @@ const FWarInventoryRow* UWarGameInstanceSubSystem::FindInventoryRow(const UObjec
 		return nullptr;
 	}
 	return FindItemRow;
+}
+
+TWeakObjectPtr<UGameConfigData> UWarGameInstanceSubSystem::GetGameConfigData(const UObject* WorldContextObject)
+{
+	if (!WorldContextObject)
+	{
+		print(TEXT("WorldContextObject 不存在"))
+		return nullptr;
+	}
+	UWarGameInstanceSubSystem* Subsystem = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
+	if (!Subsystem || !Subsystem->WarInventoryDataTable)
+	{
+		print(TEXT("Subsystem or WarInventoryDataTable 不存在"))
+		return nullptr;
+	}
+
+	return Subsystem->GameConfigData;
 }
 
 FString UWarGameInstanceSubSystem::GetStaticPlayerID(const UObject* WorldContextObject)

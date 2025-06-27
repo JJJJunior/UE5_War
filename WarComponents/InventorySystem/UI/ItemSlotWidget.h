@@ -34,8 +34,7 @@ protected:
 	void SetMaxCount(const FInventoryItemInDB& ItemInDB);
 
 public:
-	UPROPERTY(VisibleAnywhere, Category="UI")
-	bool bInitFinished = false;
+	bool bIsInitialized = false;
 	UPROPERTY(VisibleAnywhere, Category="UI")
 	FItemDataInSlot SlotData;
 	//初始化函数
@@ -43,7 +42,6 @@ public:
 	FORCEINLINE int32 GetMaxCount() const { return SlotData.MaxCount; }
 	void InitSlot(const ESlotType& InSlotType);
 	bool AddToSlot(const FInventoryItemInDB& ItemInDB);
-	bool CheckIsSomeSlotType(const FInventoryItemInDB& ItemInDB) const;
 	void RemoveFromSlot(const FInventoryItemInDB& ItemInDB);
 	void CleanSlot();
 

@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "War/WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
-#include "SQLiteDatabase.h"
 #include "WarGameInstanceSubSystem.generated.h"
 
 class UGameConfigData;
@@ -20,8 +19,6 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UWarPersistentSystem> WarPersistentSystem;
 	UPROPERTY()
-	TObjectPtr<UWarDataManager> WarDataManager;
-	UPROPERTY()
 	TObjectPtr<UGameConfigData> GameConfigData;
 	UPROPERTY()
 	TObjectPtr<UDataTable> WarInventoryDataTable;
@@ -36,13 +33,11 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UWarPersistentSystem* GetWarPersistentSystem() { return WarPersistentSystem; }
-
-	UFUNCTION(BlueprintCallable)
-	FORCEINLINE UWarDataManager* GetUWarDataManager() const { return WarDataManager; }
-
+	
 	FORCEINLINE TObjectPtr<UDataTable> GetCachedWarAbilityDataTable() const { return WarAbilityDataTable; }
 	FORCEINLINE TObjectPtr<UGameConfigData> GetCachedGameConfigData() const { return GameConfigData; }
 	//静态全局查找
 	static const FWarInventoryRow* FindInventoryRow(const UObject* WorldContextObject, const FName& TableRowID);
+	static TWeakObjectPtr<UGameConfigData> GetGameConfigData(const UObject* WorldContextObject);
 	static FString GetStaticPlayerID(const UObject* WorldContextObject);
 };

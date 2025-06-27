@@ -30,4 +30,6 @@ public:
 	TSubclassOf<URootPanelWidget> RootPanelWidgetClass;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="GameConfig")
 	TSubclassOf<UInventoryPanelWidget> InventoryPanelWidgetClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="GameConfig")
+	int32 MaxSlots;
 };

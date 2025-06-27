@@ -2,7 +2,6 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "DataManager/WarDataManager.h"
 #include "GameInstance/WarGameInstanceSubSystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Tools/MyLog.h"
@@ -28,9 +27,8 @@ void UItemSlotWidget::InitSlot(const ESlotType& InSlotType)
 {
 	// print(TEXT("UItemSlotWidget::InitSlot"));
 	CleanSlot();
-	if (InSlotType == ESlotType::None) return;
 	SlotData.SlotType = InSlotType;
-	bInitFinished = true;
+	bIsInitialized = true;
 	Show();
 }
 
@@ -39,21 +37,18 @@ void UItemSlotWidget::InitSlot(const ESlotType& InSlotType)
 bool UItemSlotWidget::AddToSlot(const FInventoryItemInDB& ItemInDB)
 {
 	// print(TEXT("UItemSlotWidget::AddToSlot"));
+	if (!bIsInitialized) return false;
 
-	if (!bInitFinished) return false;
 	//检查InstanceID TableRowID InventoryType
-
 	if (!CachedPersistentSystem->HasInventory(ItemInDB.InstanceID, CachedCharacter->GetPersistentID())) return false;
-
-	if (!CheckIsSomeSlotType(ItemInDB)) return false;
-
+	
 	if (SlotData.bIsFull) return false;
 
 	SetMaxCount(ItemInDB);
 
 	if ((SlotData.Count + ItemInDB.Count) > SlotData.MaxCount)
 	{
-		print(TEXT("SlotData Count is full"));
+		// print(TEXT("SlotData Count is full"));
 		return false;
 	}
 	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, ItemInDB.TableRowID);
@@ -69,22 +64,11 @@ bool UItemSlotWidget::AddToSlot(const FInventoryItemInDB& ItemInDB)
 	return true;
 }
 
-bool UItemSlotWidget::CheckIsSomeSlotType(const FInventoryItemInDB& ItemInDB) const
-{
-	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, ItemInDB.TableRowID);
-	if (!ItemRow) return false;
-
-	if (SlotData.SlotType == ItemRow->SlotType)
-	{
-		return true;
-	}
-	return false;
-}
-
-
 //设置堆叠范围
 void UItemSlotWidget::SetMaxCount(const FInventoryItemInDB& ItemInDB)
 {
+	if (!bIsInitialized) return;
+
 	switch (ItemInDB.InventoryType)
 	{
 	case EWarInventoryType::Weapon:
@@ -121,13 +105,11 @@ void UItemSlotWidget::Show() const
 // 移除指定物品实例
 void UItemSlotWidget::RemoveFromSlot(const FInventoryItemInDB& ItemInDB)
 {
-	print(TEXT("UItemSlotWidget::RemoveFromSlot"));
+	if (!bIsInitialized) return;
+	// print(TEXT("UItemSlotWidget::RemoveFromSlot"));
 
-	if (!bInitFinished) return;
 	//检查InstanceID TableRowID InventoryType
 	if (!CachedPersistentSystem->HasInventory(ItemInDB.InstanceID, CachedCharacter->GetPersistentID())) return;
-	//类型不一致跳出
-	if (!CheckIsSomeSlotType(ItemInDB)) return;
 
 	if (SlotData.TableRowID != ItemInDB.TableRowID) return;
 
@@ -220,9 +202,8 @@ FReply UItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, con
 
 void UItemSlotWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	// if (SlotData.Count > 0)
-	// {
-	// 	print(TEXT("%s %d %s"), *SlotData.InstanceID.ToString(), SlotData.Count, *SlotData.TableRowID.ToString());
-	// }
-	print(TEXT("%d"), bInitFinished);
+	if (SlotData.Count > 0)
+	{
+		print(TEXT("%s %d %s"), *SlotData.InstanceID.ToString(), SlotData.Count, *SlotData.TableRowID.ToString());
+	}
 }
