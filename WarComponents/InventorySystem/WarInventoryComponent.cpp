@@ -75,9 +75,6 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InInstanceID)
 	//非装备类型不能生成
 	if (InventoryItemDB.InventoryType != EWarInventoryType::Armor && InventoryItemDB.InventoryType != EWarInventoryType::Weapon) return;
 
-	//当前Socket中存在指针就略过
-	if (HasInventoryInSocket(InventoryItemDB)) return;
-
 	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOuter());
 	if (!Character) return;
 
@@ -115,7 +112,7 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InInstanceID)
 				return;
 			}
 			//消除interaction的碰撞体
-			InventoryActor->DisableInteractionSphere();
+			InventoryActor->SetWorldState(EInventoryWorldState::Equipped);
 			//移入socket
 			if (InventoryActor->AttachToComponent(Character->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ItemRow->SocketName))
 			{
@@ -134,13 +131,13 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InInstanceID)
 		}
 		//生成世界物品
 		TObjectPtr<AInventoryBase> InventoryActor = GetWorld()->SpawnActor<AInventoryBase>(LoadedClass, SpawnLocation, SpawnRotation, SpawnParameters);
-		if (!InventoryActor)
+		if (!IsValid(InventoryActor))
 		{
 			print_err(TEXT("装备InventoryActor 指针丢失"));
 			return;
 		}
 		//消除interaction的碰撞体
-		InventoryActor->DisableInteractionSphere();
+		InventoryActor->SetWorldState(EInventoryWorldState::Equipped);
 		//移入socket
 		if (InventoryActor->AttachToComponent(Character->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ItemRow->SocketName))
 		{
@@ -148,10 +145,18 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InInstanceID)
 			SavedInventoryInSlots.Emplace(InInstanceID, InventoryActor);
 		}
 	}
-	//TODO:将数据标记为已装备
-	if (PersistentSystem->MarkAsEquipped(InInstanceID, CachedCharacter->GetPersistentID()))
+}
+
+
+void UWarInventoryComponent::RollbackSpawnInventory(const FGuid& InInstanceID)
+{
+	if (SavedInventoryInSlots.Num() <= 0)return;
+
+	TWeakObjectPtr<AInventoryBase> Inventory = FindSavedInventoryInSlots(InInstanceID);
+	if (Inventory.IsValid())
 	{
-		//TODO:同步显示背包装备 以及 人物面板装备
+		DestroyEquippedInventory(Inventory);
+		SavedInventoryInSlots.Remove(InInstanceID);
 	}
 }
 
@@ -170,44 +175,29 @@ void UWarInventoryComponent::EquipInventory(const FGuid& InInstanceID)
 	FInventoryItemInDB ItemInDB;
 	PersistentSystem->FindInventoryByID(InInstanceID, CachedCharacter->GetPersistentID(), ItemInDB);
 
-	AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(GetOuter());
-	if (!Character) return;
 	//不是装备就略过
 	if (ItemInDB.InventoryType != EWarInventoryType::Armor && ItemInDB.InventoryType != EWarInventoryType::Weapon) return;
 
 	//防止崩溃
-	if (!Character || !Character->GetMesh())
+	if (!CachedCharacter.IsValid() || !CachedCharacter->GetMesh())
 	{
 		return;
 	}
-	TWeakObjectPtr<AInventoryBase> Inventory = FindSavedInventoryInSlots(ItemInDB);
-	if (Inventory.IsValid())
-	{
-		for (const TPair<FGuid, TWeakObjectPtr<AInventoryBase>>& Pair : SavedInventoryInSlots)
-		{
-			if (Pair.Value.IsValid() && Pair.Value.Get() == Inventory.Get())
-			{
-				print(TEXT("InID 有同类型装备已经穿戴 InstanceToActorMap ID：%s"), *Pair.Key.ToString());
-				if (PersistentSystem->HasEquipped(Pair.Key, CachedCharacter->GetPersistentID()))
-				{
-					UnequipInventory(Pair.Key);
-				}
-				break; // 如果只允许一件装备同类型
-			}
-		}
-	}
+
 	//生成物品
 	SpawnInventory(InInstanceID);
-	//TODO:从背包移除
+	//将数据标记为已装备
+	PersistentSystem->MarkAsEquipped(InInstanceID, CachedCharacter->GetPersistentID());
+	//从背包移除
 	RootPanelWidget->InventoryPanelWidget->RemoveItemFromSlot(ItemInDB);
-	//TODO:添加到人物
-	//显示debug信息
+	//添加到人物
+	RootPanelWidget->InventoryPanelWidget->AddItemToCharacterSlot(ItemInDB);
 }
 
 // 根据当前人物的 Socket 名称，检查是否已存在挂载的装备
-bool UWarInventoryComponent::HasInventoryInSocket(const FInventoryItemInDB& ItemInDB) const
+bool UWarInventoryComponent::HasInventoryInSomeSocket(const FGuid& InInstanceID, FGuid& FindID) const
 {
-	if (!ItemInDB.InstanceID.IsValid() || !CachedCharacter.IsValid() || !CachedCharacter->GetMesh())
+	if (!InInstanceID.IsValid() || !CachedCharacter.IsValid() || !CachedCharacter->GetMesh())
 	{
 		return false;
 	}
@@ -222,11 +212,11 @@ bool UWarInventoryComponent::HasInventoryInSocket(const FInventoryItemInDB& Item
 
 	// 遍历当前已装备的物品
 	TArray<FInventoryItemInDB> ItemInDBArray;
-	PersistentSystem->FindEquippedInventory(ItemInDB.InstanceID, CachedCharacter->GetPersistentID(), ItemInDBArray);
+	PersistentSystem->FindInventoryByState(CachedCharacter->GetPersistentID(), true, ItemInDBArray);
 	for (const FInventoryItemInDB& EquippedItem : ItemInDBArray)
 	{
 		// 排除自身（比如重新装备同一个物品）
-		if (EquippedItem.InstanceID == ItemInDB.InstanceID) continue;
+		if (EquippedItem.InstanceID == InInstanceID) continue;
 
 		const FWarInventoryRow* EquippedRow = UWarGameInstanceSubSystem::FindInventoryRow(this, EquippedItem.TableRowID);
 		if (!EquippedRow) return false;
@@ -234,6 +224,7 @@ bool UWarInventoryComponent::HasInventoryInSocket(const FInventoryItemInDB& Item
 		// 如果已装备物品的 Socket 和当前人物 Socket 相同，返回它的 InstanceID		
 		if (EquippedRow->SocketName == CurrentSocketName)
 		{
+			FindID = EquippedItem.InstanceID;
 			return true;
 		}
 	}
@@ -253,7 +244,8 @@ bool UWarInventoryComponent::SyncJsonToBag() const
 	if (!Character) return false;
 
 	TArray<FInventoryItemInDB> InventoryInJson;
-	PersistentSystem->FindAllInventoriesByPlayerID(Character->GetPersistentID(), InventoryInJson);
+	//找到当前未装备的
+	PersistentSystem->FindInventoryByState(Character->GetPersistentID(), false, InventoryInJson);
 	if (InventoryInJson.IsEmpty()) return false;
 
 	for (const FInventoryItemInDB& ItemInDB : InventoryInJson)
@@ -266,25 +258,42 @@ bool UWarInventoryComponent::SyncJsonToBag() const
 
 
 // 根据当前人物的 Socket 名称，检查是否已存在挂载的装备，返回该装备的 Actor 指针（无则返回 nullptr）
-TWeakObjectPtr<AInventoryBase> UWarInventoryComponent::FindSavedInventoryInSlots(const FInventoryItemInDB& ItemInDB) const
+TWeakObjectPtr<AInventoryBase> UWarInventoryComponent::FindSavedInventoryInSlots(const FGuid& InInstanceID) const
 {
-	if (!ItemInDB.InstanceID.IsValid()) return nullptr;
+	if (!InInstanceID.IsValid()) return nullptr;
 
-	const FWarInventoryRow* EquippedRow = UWarGameInstanceSubSystem::FindInventoryRow(this, ItemInDB.TableRowID);
+	const TWeakObjectPtr<AInventoryBase>* FindItem = SavedInventoryInSlots.Find(InInstanceID);
 
-	for (const auto& Pair : SavedInventoryInSlots)
+	if (FindItem && FindItem->IsValid())
 	{
-		if (!Pair.Value.IsValid()) continue;
+		AInventoryBase* Inventory = FindItem->Get();
 
-		const USceneComponent* Parent = Pair.Value->GetAttachParentActor() ? Pair.Value->GetAttachParentActor()->GetRootComponent() : nullptr;
-		if (!Parent) continue;
+		UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
+		if (!Subsystem) return nullptr;
+		UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
+		if (!PersistentSystem) return nullptr;
+		FInventoryItemInDB ItemInDB;
+		PersistentSystem->FindInventoryByID(InInstanceID, CachedCharacter->GetPersistentID(), ItemInDB);
 
-		if (Pair.Value->GetAttachParentSocketName() == EquippedRow->SocketName)
+		const FWarInventoryRow* EquippedRow = UWarGameInstanceSubSystem::FindInventoryRow(this, ItemInDB.TableRowID);
+		if (Inventory->GetAttachParentSocketName() == EquippedRow->SocketName)
 		{
-			return Pair.Value.Get();
+			return Inventory;
 		}
 	}
 	return nullptr;
+}
+
+
+void UWarInventoryComponent::DestroyEquippedInventory(const TWeakObjectPtr<AInventoryBase>& Inventory)
+{
+	if (Inventory.IsValid())
+	{
+		// 先解除挂载
+		Inventory->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		// 销毁世界的实例
+		Inventory->Destroy();
+	}
 }
 
 
@@ -298,30 +307,18 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InInstanceID)
 
 	UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
 	if (!PersistentSystem) return;
+	//回退装备
+	RollbackSpawnInventory(InInstanceID);
+	//修改数据库
+	PersistentSystem->MarkAsUnEquipped(InInstanceID, CachedCharacter->GetPersistentID());
 
-	// TODO:删除 Character 面板上的装备
-	// RootPanelWidget->CharacterPanelWidget->RemoveItemFromSlot(InBagData);
+	FInventoryItemInDB InventoryInDB;
+	PersistentSystem->FindInventoryByID(InInstanceID, CachedCharacter->GetPersistentID(), InventoryInDB);
 
-	// 修改标记
-	if (PersistentSystem->MarkAsUnEquipped(InInstanceID, CachedCharacter->GetPersistentID()))
-	{
-		FInventoryItemInDB ItemInDB;
-		PersistentSystem->FindInventoryByID(InInstanceID, CachedCharacter->GetPersistentID(), ItemInDB);
-		// 背包 UI 添加装备
-		RootPanelWidget->InventoryPanelWidget->AddItemToSlot(ItemInDB);
-
-		// 销毁世界 Socket 上的装备
-		TWeakObjectPtr<AInventoryBase> InventoryPtr = FindSavedInventoryInSlots(ItemInDB);
-		if (InventoryPtr.IsValid())
-		{
-			// 先解除挂载
-			InventoryPtr->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-			// 销毁世界的实例
-			InventoryPtr->Destroy();
-			SavedInventoryInSlots.Remove(InInstanceID);
-			print(TEXT("UnequipInventory 装备 %s"), *InInstanceID.ToString());
-		}
-	}
+	//移除人物UI
+	RootPanelWidget->InventoryPanelWidget->RemoveItemFromCharacter(InventoryInDB);
+	//移除背包UI
+	RootPanelWidget->InventoryPanelWidget->AddItemToSlot(InventoryInDB);
 }
 
 

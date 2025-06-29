@@ -1,8 +1,9 @@
 ﻿#include "WarGameInstanceSubSystem.h"
+#include "EngineUtils.h"
 #include "War/DataManager/ConfigData/GameConfigData.h"
 #include "War/WarComponents/PersistentSystem/WarPersistentSystem.h"
 #include "Tools/MyLog.h"
-
+#include "War/Characters/Hero/WarHeroCharacter.h"
 
 void UWarGameInstanceSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -33,7 +34,6 @@ void UWarGameInstanceSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogTemp, Error, TEXT("WarPersistentSystem is NULL"));
 		return;
 	}
-	
 }
 
 
@@ -101,4 +101,24 @@ FString UWarGameInstanceSubSystem::GetStaticPlayerID(const UObject* WorldContext
 		return FString();
 	}
 	return Subsystem->GameConfigData->StaticPlayerID;
+}
+
+AWarHeroCharacter* UWarGameInstanceSubSystem::FindCharacterByPersistentID(const UObject* WorldContextObject, const FGuid& PersistentID)
+{
+	if (!WorldContextObject) return nullptr;
+	UWorld* World = WorldContextObject->GetWorld();
+	if (!World) return nullptr;
+
+	for (TActorIterator<AWarHeroCharacter> It(World); It; ++It)
+	{
+		AWarHeroCharacter* Character = *It;
+		if (!Character) continue;
+
+		if (Character->GetPersistentID() == PersistentID)
+		{
+			return Character;
+		}
+	}
+
+	return nullptr;
 }

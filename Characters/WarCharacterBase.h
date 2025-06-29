@@ -23,7 +23,7 @@ public:
 	virtual void BeginPlay() override;
 
 	FORCEINLINE virtual void SaveActorData(FMemoryWriter& MemoryWriter) const override;
-	FORCEINLINE virtual void LoadActorData(FMemoryReader& MemoryReader) const override;
+	FORCEINLINE virtual void LoadActorData(FMemoryReader& MemoryReader) override;
 	FORCEINLINE virtual FGuid GetPersistentID() const override { return PersistentID; };
 	virtual void SetPersistentID(const FGuid& NewID) override;
 	FORCEINLINE virtual FName GetTableRowID() const override { return TableRowID; }

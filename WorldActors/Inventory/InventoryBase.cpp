@@ -12,6 +12,8 @@ AInventoryBase::AInventoryBase()
 	StaticMeshComponent->SetupAttachment(RootComponent);
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
 	InteractionSphere->SetupAttachment(StaticMeshComponent);
+	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	InteractionSphere->SetGenerateOverlapEvents(false);
 }
 
 void AInventoryBase::BeginPlay()
@@ -21,12 +23,6 @@ void AInventoryBase::BeginPlay()
 
 	//初始化ID
 	UWarPersistentSystem::GeneratorPersistentID(this);
-}
-
-
-void AInventoryBase::DisableInteractionSphere() const
-{
-	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 
@@ -52,8 +48,42 @@ void AInventoryBase::OnEndFocus_Implementation()
 
 void AInventoryBase::SaveActorData(FMemoryWriter& MemoryWriter) const
 {
+	FArchive& Ar = MemoryWriter;
+	//保存物品状态
+	uint8 StateAsByte = static_cast<uint8>(CurrentState);
+	Ar << StateAsByte;
 }
 
-void AInventoryBase::LoadActorData(FMemoryReader& MemoryReader) const
+void AInventoryBase::LoadActorData(FMemoryReader& MemoryReader)
 {
+	FArchive& Ar = MemoryReader;
+
+	uint8 StateAsByte = 0;
+	Ar << StateAsByte;
+
+	EInventoryWorldState LoadedState = static_cast<EInventoryWorldState>(StateAsByte);
+	SetWorldState(LoadedState); // 会自动设置碰撞行为
+}
+
+void AInventoryBase::SetWorldState(const EInventoryWorldState& NewState)
+{
+	CurrentState = NewState;
+	UpdateInteractionCollision();
+}
+
+void AInventoryBase::UpdateInteractionCollision() const
+{
+	if (!InteractionSphere) return;
+	switch (CurrentState)
+	{
+	case EInventoryWorldState::Equipped:
+	case EInventoryWorldState::None:
+		InteractionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		InteractionSphere->SetGenerateOverlapEvents(false);
+		break;
+	case EInventoryWorldState::WorldDropped:
+		InteractionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		InteractionSphere->SetGenerateOverlapEvents(true);
+		break;
+	}
 }

@@ -46,7 +46,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UItemSlotWidget> ItemSlotWidgetClass;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
-	TMap<ESlotType, USizeBox*> CharacterSlots;
+	TMap<ESlotType, TObjectPtr<UItemSlotWidget>> CharacterSlots;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
 	TArray<TObjectPtr<UItemSlotWidget>> QuickSlots;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
@@ -57,11 +57,13 @@ public:
 	TWeakObjectPtr<AWarHeroCharacter> CachedCharacter;
 
 	virtual void NativeConstruct() override;
-	virtual void InitSlots();
-	virtual void SyncSlots();
-	virtual void RemoveItemFromSlot(const FInventoryItemInDB& InItemInDB);
-	virtual void ClearAllSlots();
-	virtual void AddItemToSlot(const FInventoryItemInDB& InItemInDB);
-	virtual int32 GetMaxSlots() const { return MaxSlots; }
+	void InitSlots();
+	bool SyncSlots();
+	bool AddItemToCharacterSlot(const FInventoryItemInDB& InItemInDB);
+	bool RemoveItemFromCharacter(const FInventoryItemInDB& InItemInDB);
+	bool RemoveItemFromSlot(const FInventoryItemInDB& InItemInDB);
+	void ClearAllSlots();
+	bool AddItemToSlot(const FInventoryItemInDB& InItemInDB);
+	int32 GetMaxSlots() const { return MaxSlots; }
 	UItemSlotWidget* FindSuitableSlot(const FInventoryItemInDB& InItemInDB);
 };

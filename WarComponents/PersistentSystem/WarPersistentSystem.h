@@ -7,7 +7,7 @@
 
 
 class UWarDataManager;
-
+class AInventoryBase;
 
 UCLASS()
 class WAR_API UWarPersistentSystem : public UObject
@@ -16,6 +16,7 @@ class WAR_API UWarPersistentSystem : public UObject
 
 protected:
 	void InsertInventory(const FInventoryItemInDB& InventoryItemInDB) const;
+	void RestoreEquippedInventory(AInventoryBase* Inventory, const FGuid& PlayerID) const;
 
 public:
 	FString SavedGameDataFieldName;
@@ -41,9 +42,9 @@ public:
 
 	void InsertInventoryWithMax(const FInventoryItemInDB& InventoryItemInDB) const;
 	void UpdateInventory(const FInventoryItemInDB& InventoryItemInDB) const;
-	bool MarkAsEquipped(const FGuid& InventoryID, const FGuid& PlayerID) const;
-	bool MarkAsUnEquipped(const FGuid& InventoryID, const FGuid& PlayerID) const;
-	bool FindEquippedInventory(const FGuid& InventoryID, const FGuid& PlayerID, TArray<FInventoryItemInDB>& OurResult) const;
+	void MarkAsEquipped(const FGuid& InventoryID, const FGuid& PlayerID) const;
+	void MarkAsUnEquipped(const FGuid& InventoryID, const FGuid& PlayerID) const;
+	bool FindInventoryByState(const FGuid& PlayerID, const bool bEquippedState, TArray<FInventoryItemInDB>& OurResult) const;
 	bool HasInventory(const FGuid& InventoryID, const FGuid& PlayerID) const;
 	bool HasEquipped(const FGuid& InventoryID, const FGuid& PlayerID) const;
 	bool FindInventoryByID(const FGuid& InventoryID, const FGuid& PlayerID, FInventoryItemInDB& OutResult) const;

@@ -22,7 +22,7 @@ void AWarCharacterBase::SaveActorData(FMemoryWriter& MemoryWriter) const
 {
 }
 
-void AWarCharacterBase::LoadActorData(FMemoryReader& MemoryReader) const
+void AWarCharacterBase::LoadActorData(FMemoryReader& MemoryReader)
 {
 }
 

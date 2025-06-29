@@ -15,6 +15,9 @@ struct FWarSaveGameData
 	FGuid InstanceID = FGuid();
 
 	UPROPERTY()
+	FGuid OwnerID = FGuid();
+
+	UPROPERTY()
 	int32 Count = 0;
 
 	UPROPERTY()

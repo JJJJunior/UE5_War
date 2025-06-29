@@ -48,13 +48,13 @@ void UInventoryPanelWidget::InitSlots()
 
 		if (!SlotBox) continue;
 
-		if (UItemSlotWidget* SlotWidget = CreateWidget<UItemSlotWidget>(GetWorld(), ItemSlotWidgetClass))
+		if (UItemSlotWidget* CharacterSlotWidget = CreateWidget<UItemSlotWidget>(GetWorld(), ItemSlotWidgetClass))
 		{
 			//设置索引
-			SlotWidget->SetVisibility(ESlateVisibility::Visible);
-			SlotWidget->InitSlot(SlotType);
-			SlotBox->AddChild(SlotWidget);
-			CharacterSlots.Emplace(SlotType, SlotBox);
+			CharacterSlotWidget->SetVisibility(ESlateVisibility::Visible);
+			CharacterSlotWidget->InitSlot(SlotType);
+			SlotBox->AddChild(CharacterSlotWidget);
+			CharacterSlots.Emplace(SlotType, CharacterSlotWidget);
 		}
 		index++;
 	}
@@ -62,36 +62,67 @@ void UInventoryPanelWidget::InitSlots()
 	if (!InventoryWrapBox) return;
 	for (int32 i = 0; i < MaxSlots; i++)
 	{
-		if (UItemSlotWidget* SlotWidget = CreateWidget<UItemSlotWidget>(GetWorld(), ItemSlotWidgetClass))
+		if (UItemSlotWidget* InventorySlotWidget = CreateWidget<UItemSlotWidget>(GetWorld(), ItemSlotWidgetClass))
 		{
 			//设置索引
-			SlotWidget->SetVisibility(ESlateVisibility::Visible);
-			SlotWidget->InitSlot(ESlotType::Normal);
-			InventoryWrapBox->AddChildToWrapBox(SlotWidget);
-			InventorySlots.Add(SlotWidget);
+			InventorySlotWidget->SetVisibility(ESlateVisibility::Visible);
+			InventorySlotWidget->InitSlot(ESlotType::Normal);
+			InventoryWrapBox->AddChildToWrapBox(InventorySlotWidget);
+			InventorySlots.Add(InventorySlotWidget);
 		}
 	}
 }
 
 
 // 同步背包数据
-void UInventoryPanelWidget::SyncSlots()
+bool UInventoryPanelWidget::SyncSlots()
 {
 	UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
-	if (!Subsystem) return;
+	if (!Subsystem) return false;
 	UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
-	if (!PersistentSystem) return;
+	if (!PersistentSystem) return false;
+
+	bool bSuccess = false;
 
 	TArray<FInventoryItemInDB> ItemInDBArray;
 	PersistentSystem->FindAllInventoriesByPlayerID(CachedCharacter->GetPersistentID(), ItemInDBArray);
 
-	if (ItemInDBArray.Num() > 0)
+	if (ItemInDBArray.Num() <= 0) return false;
+
+	for (const FInventoryItemInDB& Inventory : ItemInDBArray)
 	{
-		for (const FInventoryItemInDB& Inventory : ItemInDBArray)
+		if (AddItemToSlot(Inventory))
 		{
-			AddItemToSlot(Inventory);
+			bSuccess = true;
 		}
 	}
+	return bSuccess;
+}
+
+bool UInventoryPanelWidget::AddItemToCharacterSlot(const FInventoryItemInDB& InItemInDB)
+{
+	const FWarInventoryRow* FindRow = UWarGameInstanceSubSystem::FindInventoryRow(this, InItemInDB.TableRowID);
+	if (!FindRow) return false;
+
+	TObjectPtr<UItemSlotWidget>* SlotPtr = CharacterSlots.Find(FindRow->SlotType);
+	if (SlotPtr && *SlotPtr && (*SlotPtr)->bIsInitialized)
+	{
+		return (*SlotPtr)->AddToSlot(InItemInDB);
+	}
+	return false;
+}
+
+bool UInventoryPanelWidget::RemoveItemFromCharacter(const FInventoryItemInDB& InItemInDB)
+{
+	const FWarInventoryRow* FindRow = UWarGameInstanceSubSystem::FindInventoryRow(this, InItemInDB.TableRowID);
+	if (!FindRow) return false;
+
+	TObjectPtr<UItemSlotWidget>* SlotPtr = CharacterSlots.Find(FindRow->SlotType);
+	if (SlotPtr && *SlotPtr)
+	{
+		return (*SlotPtr)->RemoveFromSlot(InItemInDB);
+	}
+	return false;
 }
 
 
@@ -108,12 +139,17 @@ void UInventoryPanelWidget::ClearAllSlots()
 }
 
 // 添加物品（支持堆叠）
-void UInventoryPanelWidget::AddItemToSlot(const FInventoryItemInDB& InItemInDB)
+bool UInventoryPanelWidget::AddItemToSlot(const FInventoryItemInDB& InItemInDB)
 {
+	bool bSuccess = false;
 	if (UItemSlotWidget* FindSlot = FindSuitableSlot(InItemInDB))
 	{
-		FindSlot->AddToSlot(InItemInDB);
+		if (FindSlot->AddToSlot(InItemInDB))
+		{
+			bSuccess = true;
+		}
 	}
+	return bSuccess;
 }
 
 
@@ -162,8 +198,10 @@ UItemSlotWidget* UInventoryPanelWidget::FindSuitableSlot(const FInventoryItemInD
 
 
 // 从背包移除装备
-void UInventoryPanelWidget::RemoveItemFromSlot(const FInventoryItemInDB& InItemInDB)
+bool UInventoryPanelWidget::RemoveItemFromSlot(const FInventoryItemInDB& InItemInDB)
 {
+	bool bSuccess = false;
+
 	for (const TObjectPtr<UItemSlotWidget>& InSlot : InventorySlots)
 	{
 		if (InSlot->SlotData.Count == 0) continue;
@@ -172,8 +210,13 @@ void UInventoryPanelWidget::RemoveItemFromSlot(const FInventoryItemInDB& InItemI
 		if (InSlot->SlotData.InstanceID == InItemInDB.InstanceID && InItemInDB.Count > 0)
 		{
 			// 执行移除
-			InSlot->RemoveFromSlot(InItemInDB);
+			if (InSlot->RemoveFromSlot(InItemInDB))
+			{
+				bSuccess = true;
+			}
 			break; // 找到立即退出
 		}
 	}
+
+	return bSuccess;
 }

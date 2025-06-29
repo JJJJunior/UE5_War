@@ -1,20 +1,19 @@
 ﻿#include "WarJsonHelper.h"
 
 
-bool WarJsonHelper::ExtractEquippedInventoryKeys(const TSharedPtr<FJsonObject>& Json, FGuid& OutInstanceID, FGuid& OutPlayerID, bool& OutEquipped)
+bool WarJsonHelper::ExtractEquippedInventoryKeys(const TSharedPtr<FJsonObject>& Json, FGuid& OutPlayerID, bool& OutEquipped)
 {
-	FString InstanceIDStr, PlayerIDStr;
+	FString PlayerIDStr;
 	if (!Json.IsValid()) return false;
 
-	if (!Json->TryGetStringField(TEXT("InstanceID"), InstanceIDStr) ||
-		!Json->TryGetStringField(TEXT("PlayerID"), PlayerIDStr) ||
+	if (!Json->TryGetStringField(TEXT("PlayerID"), PlayerIDStr) ||
 		!Json->HasTypedField<EJson::Boolean>(TEXT("bIsEquipped")) ||
 		!Json->TryGetBoolField(TEXT("bIsEquipped"), OutEquipped))
 	{
 		return false;
 	}
 
-	return FGuid::Parse(InstanceIDStr, OutInstanceID) && FGuid::Parse(PlayerIDStr, OutPlayerID);
+	return FGuid::Parse(PlayerIDStr, OutPlayerID);
 }
 
 bool WarJsonHelper::ExtractInventoryKeys(const TSharedPtr<FJsonObject>& Json, FGuid& OutInstanceID, FGuid& OutPlayerID)

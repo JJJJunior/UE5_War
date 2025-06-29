@@ -59,14 +59,14 @@ void AWarHeroCharacter::BeginPlay()
 
 	DisableTarget();
 
-	if (UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>())
-	{
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this,Subsystem]()
-		{
-			Subsystem->GetWarPersistentSystem()->LoadGame();
-		}, 0.5f, false);
-	}
+	// if (UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>())
+	// {
+	// 	FTimerHandle TimerHandle;
+	// 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this,Subsystem]()
+	// 	{
+	// 		Subsystem->GetWarPersistentSystem()->LoadGame();
+	// 	}, 0.5f, false);
+	// }
 }
 
 
@@ -228,7 +228,7 @@ void AWarHeroCharacter::CheckAllInventoriesInMemory() const
 		{
 			for (const auto& Item : Inventories)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 7.0f, FColor::Yellow, FString::Printf(TEXT("%s -- %s -- [%d]"), *Item.TableRowID.ToString(), *Item.InstanceID.ToString(), Item.Count));
+				GEngine->AddOnScreenDebugMessage(-1, 7.0f, FColor::Yellow, FString::Printf(TEXT("%s -- %s -- 数量[%d] 状态[%d]"), *Item.TableRowID.ToString(), *Item.InstanceID.ToString(), Item.Count, Item.bIsEquipped));
 				print(TEXT("%s -- %s -- [%d]"), *Item.TableRowID.ToString(), *Item.InstanceID.ToString(), Item.Count);
 			}
 		}

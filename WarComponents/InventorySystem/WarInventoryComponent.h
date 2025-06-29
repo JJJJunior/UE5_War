@@ -40,13 +40,14 @@ protected:
 
 	// 装备物品（生成场景 Actor）
 	void SpawnInventory(const FGuid& InInstanceID);
-	bool HasInventoryInSocket(const FInventoryItemInDB& ItemInDB) const;
+	void RollbackSpawnInventory(const FGuid& InInstanceID);
+	static void DestroyEquippedInventory(const TWeakObjectPtr<AInventoryBase>& Inventory);
 
 	//同步背包数据
 	bool SyncJsonToBag() const;
 
 	// 查询当前装备指针
-	TWeakObjectPtr<AInventoryBase> FindSavedInventoryInSlots(const FInventoryItemInDB& ItemInDB) const;
+	TWeakObjectPtr<AInventoryBase> FindSavedInventoryInSlots(const FGuid& InInstanceID) const;
 
 public:
 	UWarInventoryComponent();
@@ -58,15 +59,17 @@ public:
 	static bool CreateSkill(const UObject* WorldContextObject, const FName& TableID, const FGuid& PlayerID);
 	static bool GenerateItemToBagAndSaved(const UObject* WorldContextObject, const FName& TableID, const FGuid& PlayerID);
 
+
 	virtual void BeginPlay() override;
 	void ToggleInventoryUI();
 	// 提供状态查询函数
 	bool IsInventoryUIVisible() const { return bInventoryUIVisible; }
 
 	//给外部调用
-	//穿装备
 	void EquipInventory(const FGuid& InInstanceID);
 	void UnequipInventory(const FGuid& InInstanceID);
+	bool HasInventoryInSomeSocket(const FGuid& InInstanceID, FGuid& FindID) const;
+	
 	//广播通知UI打开状态
 	UPROPERTY()
 	FOnUIStateChanged OnUIStateChanged;

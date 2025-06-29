@@ -42,7 +42,7 @@ public:
 	FORCEINLINE int32 GetMaxCount() const { return SlotData.MaxCount; }
 	void InitSlot(const ESlotType& InSlotType);
 	bool AddToSlot(const FInventoryItemInDB& ItemInDB);
-	void RemoveFromSlot(const FInventoryItemInDB& ItemInDB);
+	bool RemoveFromSlot(const FInventoryItemInDB& ItemInDB);
 	void CleanSlot();
 
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent) override;

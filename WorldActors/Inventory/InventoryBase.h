@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "DataManager/EnumTypes/WarEnumTypes.h"
 #include "GameFramework/Actor.h"
 #include "War/WarComponents/InteractionSystem/Interface/InteractableInterface.h"
 #include "War/WarComponents/PersistentSystem/Interface/WarSaveGameInterface.h"
@@ -26,6 +27,8 @@ protected:
 	FName TableRowID;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Save")
 	FGuid PersistentID = FGuid();
+	UPROPERTY()
+	EInventoryWorldState CurrentState = EInventoryWorldState::None;
 
 public:
 	AInventoryBase();
@@ -36,12 +39,15 @@ public:
 	// 瞄准离开时
 	virtual void OnEndFocus_Implementation() override;
 	virtual void BeginPlay() override;
-	//关闭碰撞体
-	void DisableInteractionSphere() const;
 
 	virtual void SaveActorData(FMemoryWriter& MemoryWriter) const override;
-	virtual void LoadActorData(FMemoryReader& MemoryReader) const override;
+	virtual void LoadActorData(FMemoryReader& MemoryReader) override;
 	FORCEINLINE virtual FGuid GetPersistentID() const override { return PersistentID; }
 	FORCEINLINE virtual void SetPersistentID(const FGuid& NewID) override { PersistentID = NewID; }
 	FORCEINLINE virtual FName GetTableRowID() const override { return TableRowID; }
+	FORCEINLINE EInventoryWorldState GetCurrentWorldState() const { return CurrentState; }
+
+	void SetWorldState(const EInventoryWorldState& NewState);
+	//根据状态调整碰撞体
+	void UpdateInteractionCollision() const;
 };

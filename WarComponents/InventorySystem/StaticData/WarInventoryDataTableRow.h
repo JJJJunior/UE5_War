@@ -5,7 +5,6 @@
 #include "War/DataManager/EnumTypes/WarEnumTypes.h"
 #include "WarInventoryDataTableRow.generated.h"
 
-
 class AInventoryBase;
 class UAnimMontage;
 class UTexture2D;

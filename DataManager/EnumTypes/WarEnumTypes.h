@@ -15,6 +15,14 @@ enum class EWarInventoryType: uint8
 	Skill //技能用于施法
 };
 
+//用于标记装备状态是否消除碰撞体
+UENUM()
+enum class EInventoryWorldState : uint8
+{
+	None,
+	Equipped,
+	WorldDropped,
+};
 
 UENUM(BlueprintType)
 enum class ESlotType:uint8

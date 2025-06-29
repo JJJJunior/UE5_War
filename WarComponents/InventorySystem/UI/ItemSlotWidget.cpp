@@ -7,6 +7,7 @@
 #include "Tools/MyLog.h"
 #include "WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
 #include "War/Characters/Hero/WarHeroCharacter.h"
+#include "WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "WarComponents/PersistentSystem/WarPersistentSystem.h"
 #include "Windows/AllowWindowsPlatformTypes.h"
 
@@ -41,7 +42,7 @@ bool UItemSlotWidget::AddToSlot(const FInventoryItemInDB& ItemInDB)
 
 	//检查InstanceID TableRowID InventoryType
 	if (!CachedPersistentSystem->HasInventory(ItemInDB.InstanceID, CachedCharacter->GetPersistentID())) return false;
-	
+
 	if (SlotData.bIsFull) return false;
 
 	SetMaxCount(ItemInDB);
@@ -103,26 +104,26 @@ void UItemSlotWidget::Show() const
 
 
 // 移除指定物品实例
-void UItemSlotWidget::RemoveFromSlot(const FInventoryItemInDB& ItemInDB)
+bool UItemSlotWidget::RemoveFromSlot(const FInventoryItemInDB& ItemInDB)
 {
-	if (!bIsInitialized) return;
+	if (!bIsInitialized) return false;
 	// print(TEXT("UItemSlotWidget::RemoveFromSlot"));
 
 	//检查InstanceID TableRowID InventoryType
-	if (!CachedPersistentSystem->HasInventory(ItemInDB.InstanceID, CachedCharacter->GetPersistentID())) return;
+	if (!CachedPersistentSystem->HasInventory(ItemInDB.InstanceID, CachedCharacter->GetPersistentID())) return false;
 
-	if (SlotData.TableRowID != ItemInDB.TableRowID) return;
+	if (SlotData.TableRowID != ItemInDB.TableRowID) return false;
 
 	//数量为0
-	if (SlotData.Count <= 0) return;
+	if (SlotData.Count <= 0) return false;
 
 	const FWarInventoryRow* ItemRow = UWarGameInstanceSubSystem::FindInventoryRow(this, ItemInDB.TableRowID);
-	if (!ItemRow) return;
+	if (!ItemRow) return false;
 
 	if ((SlotData.Count - ItemInDB.Count) < 0)
 	{
 		print(TEXT("移除数量结果小于0，跳过"));
-		return;
+		return false;
 	}
 
 	SlotData.Count -= ItemInDB.Count;
@@ -132,6 +133,7 @@ void UItemSlotWidget::RemoveFromSlot(const FInventoryItemInDB& ItemInDB)
 		CleanSlot();
 	}
 	Show();
+	return true;
 }
 
 
@@ -188,11 +190,32 @@ FReply UItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, con
 		//鼠标右键在人物面板和装备面板切换装备
 		if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 		{
+			//判断类型物品类型
+			const FWarInventoryRow* FindRow = UWarGameInstanceSubSystem::FindInventoryRow(this, SlotData.TableRowID);
+			switch (FindRow->InventoryType)
+			{
+			case EWarInventoryType::Weapon:
+			case EWarInventoryType::Armor:
+				print(TEXT("右键了%s"), *SlotData.TableRowID.ToString());
+				//如果相同socket存在装备就取下防身上
+				if (UWarInventoryComponent* InventoryComponent = CachedCharacter->GetWarInventoryComponent())
+				{
+					FGuid OldGuid;
+					InventoryComponent->HasInventoryInSomeSocket(SlotData.InstanceID, OldGuid);
+					InventoryComponent->UnequipInventory(OldGuid);
+					InventoryComponent->EquipInventory(SlotData.InstanceID);
+				}
+				break;
+			default:
+				print(TEXT("右键处理其他物品类型的逻辑"));
+				break;
+			}
 			return FReply::Handled();
 		}
 
 		if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 		{
+			print(TEXT("左键拖动了%s"), *SlotData.TableRowID.ToString());
 			return FReply::Handled().DetectDrag(TakeWidget(), EKeys::LeftMouseButton);
 		}
 	}
@@ -204,6 +227,6 @@ void UItemSlotWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPoi
 {
 	if (SlotData.Count > 0)
 	{
-		print(TEXT("%s %d %s"), *SlotData.InstanceID.ToString(), SlotData.Count, *SlotData.TableRowID.ToString());
+		// print(TEXT("%s %d %s"), *SlotData.InstanceID.ToString(), SlotData.Count, *SlotData.TableRowID.ToString());
 	}
 }
