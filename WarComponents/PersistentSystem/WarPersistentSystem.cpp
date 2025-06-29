@@ -853,7 +853,8 @@ void UWarPersistentSystem::LoadGame()
 
 			if (UClass* ActorClass = Cast<UClass>(SavedGameData.ActorClassPath.TryLoad()))
 			{
-				AActor* NewActor = GetWorld()->SpawnActor<AActor>(ActorClass, NewTransform);
+				// ✅ 用延迟生成
+				AActor* NewActor = GetWorld()->SpawnActorDeferred<AActor>(ActorClass, NewTransform);
 				if (!NewActor) return;
 
 				if (IWarSaveGameInterface* SaveInterface = Cast<IWarSaveGameInterface>(NewActor))
@@ -871,7 +872,6 @@ void UWarPersistentSystem::LoadGame()
 				}
 				//生成
 				UGameplayStatics::FinishSpawningActor(NewActor, NewTransform);
-				print(TEXT("加载 Spawn Actor：%s [%s]"), *NewActor->GetName(), *SavedGameData.InstanceID.ToString());
 			}
 		}
 	}
