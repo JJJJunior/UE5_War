@@ -200,9 +200,6 @@ FReply UItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, con
 				//如果相同socket存在装备就取下防身上
 				if (UWarInventoryComponent* InventoryComponent = CachedCharacter->GetWarInventoryComponent())
 				{
-					FGuid OldGuid;
-					InventoryComponent->HasInventoryInSomeSocket(SlotData.InstanceID, OldGuid);
-					InventoryComponent->UnequipInventory(OldGuid);
 					InventoryComponent->EquipInventory(SlotData.InstanceID);
 				}
 				break;

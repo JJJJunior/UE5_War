@@ -16,7 +16,6 @@ class WAR_API UWarPersistentSystem : public UObject
 
 protected:
 	void InsertInventory(const FInventoryItemInDB& InventoryItemInDB) const;
-	void RestoreEquippedInventory(AInventoryBase* Inventory, const FGuid& PlayerID) const;
 
 public:
 	FString SavedGameDataFieldName;

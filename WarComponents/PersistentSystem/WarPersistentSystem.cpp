@@ -14,6 +14,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Misc/Paths.h"
 #include "War/WarComponents/PersistentSystem/WarJsonHelper.h"
+#include "WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "WorldActors/Inventory/InventoryBase.h"
 
 UWarPersistentSystem::UWarPersistentSystem()
@@ -159,7 +160,6 @@ void UWarPersistentSystem::InsertSavedActor(const FWarSaveGameData& SaveGameData
 	TSharedPtr<FJsonObject> NewActorData = MakeShared<FJsonObject>();
 	NewActorData->SetStringField("InstanceID", SaveGameData.InstanceID.ToString());
 	NewActorData->SetStringField("TableRowID", SaveGameData.TableRowID.ToString());
-	NewActorData->SetStringField("OwnerID", SaveGameData.OwnerID.ToString());
 	NewActorData->SetNumberField("Count", SaveGameData.Count);
 	NewActorData->SetStringField("ActorClassPath", SaveGameData.ActorClassPath.ToString());
 	NewActorData->SetNumberField("LocationX", SaveGameData.Location.X);
@@ -211,7 +211,6 @@ void UWarPersistentSystem::UpdateSavedActor(const FWarSaveGameData& SaveGameData
 				ActorObject->SetNumberField("Count", SaveGameData.Count);
 				ActorObject->SetStringField("ActorClassPath", SaveGameData.ActorClassPath.ToString());
 				ActorObject->SetStringField("TableRowID", SaveGameData.TableRowID.ToString());
-				ActorObject->SetStringField("OwnerID", SaveGameData.OwnerID.ToString());
 				ActorObject->SetNumberField("LocationX", SaveGameData.Location.X);
 				ActorObject->SetNumberField("LocationY", SaveGameData.Location.Y);
 				ActorObject->SetNumberField("LocationZ", SaveGameData.Location.Z);
@@ -268,7 +267,6 @@ bool UWarPersistentSystem::FindAllSavedActors(TArray<FWarSaveGameData>& OutResul
 			SavedActorInDB.InstanceID = FGuid(ActorObject->GetStringField(TEXT("InstanceID")));
 			SavedActorInDB.ActorClassPath = ActorObject->GetStringField(TEXT("ActorClassPath"));
 			SavedActorInDB.TableRowID = FName(*ActorObject->GetStringField(TEXT("TableRowID")));
-			SavedActorInDB.OwnerID = FGuid(ActorObject->GetStringField(TEXT("OwnerID")));
 			SavedActorInDB.Count = ActorObject->GetIntegerField(TEXT("Count"));
 			SavedActorInDB.bIsDestroyed = ActorObject->GetBoolField(TEXT("bIsDestroyed"));
 			SavedActorInDB.bIsDynamicActor = ActorObject->GetBoolField(TEXT("bIsDynamicActor"));
@@ -740,54 +738,53 @@ void UWarPersistentSystem::SaveGame()
 	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
 	{
 		AActor* Actor = *It;
-		if (IWarSaveGameInterface* SaveInterface = Cast<IWarSaveGameInterface>(Actor))
+		if (Actor->Implements<UWarSaveGameInterface>())
 		{
-			SaveActors.Add(Actor);
-			// 如果 Actor 已经有 ID，才构造更新数据
-			if (!SaveInterface->GetPersistentID().IsValid()) return;
-
-			//存档数据构造
-			FWarSaveGameData SavedGameData;
-			SavedGameData.bIsDestroyed = false;
-			SavedGameData.InstanceID = SaveInterface->GetPersistentID();
-			SavedGameData.TableRowID = SaveInterface->GetTableRowID();
-			// 保存时，区分动态和静态
-			SavedGameData.bIsDynamicActor = Actor->ActorHasTag(TEXT("DynamicActor"));
-			if (SavedGameData.bIsDynamicActor)
-			{
-				SavedGameData.ActorClassPath = Actor->GetClass(); // 仅动态物体记录 Class
-			}
-			else
-			{
-				SavedGameData.ActorClassPath = nullptr;
-			}
-
+			// ✅ 跳过特定状态的 InventoryBase
 			if (AInventoryBase* Inventory = Cast<AInventoryBase>(Actor))
 			{
-				if (Inventory->GetCurrentWorldState() == EInventoryWorldState::Equipped)
+				EInventoryWorldState State = Inventory->GetCurrentWorldState();
+				if (State == EInventoryWorldState::Equipped || State == EInventoryWorldState::None)
 				{
-					AActor* OwnerActor = Inventory->GetAttachParentActor();
-					if (!OwnerActor) return;
-					if (AWarCharacterBase* OwnerCharacter = Cast<AWarCharacterBase>(OwnerActor))
-					{
-						SavedGameData.OwnerID = OwnerCharacter->GetPersistentID();
-					}
+					continue;
 				}
 			}
-
-			SavedGameData.Location = Actor->GetActorLocation();
-			SavedGameData.Rotation = Actor->GetActorRotation();
-			SavedGameData.Scale = Actor->GetActorScale();
-
-			//TODO:写入内存
-			UpdateSavedActor(SavedGameData);
+			SaveActors.Add(Actor);
 		}
 	}
+
+	for (AActor* Actor : SaveActors)
+	{
+		IWarSaveGameInterface* SaveInterface = Cast<IWarSaveGameInterface>(Actor);
+
+		//存档数据构造
+		FWarSaveGameData SavedGameData;
+		SavedGameData.bIsDestroyed = false;
+		SavedGameData.InstanceID = SaveInterface->GetPersistentID();
+		SavedGameData.TableRowID = SaveInterface->GetTableRowID();
+		// 保存时，区分动态和静态
+		SavedGameData.bIsDynamicActor = Actor->ActorHasTag(TEXT("DynamicActor"));
+		if (SavedGameData.bIsDynamicActor)
+		{
+			SavedGameData.ActorClassPath = Actor->GetClass(); // 仅动态物体记录 Class
+		}
+		else
+		{
+			SavedGameData.ActorClassPath = nullptr;
+		}
+
+		SavedGameData.Location = Actor->GetActorLocation();
+		SavedGameData.Rotation = Actor->GetActorRotation();
+		SavedGameData.Scale = Actor->GetActorScale();
+
+		//TODO:写入内存
+		UpdateSavedActor(SavedGameData);
+	}
+
 	// ⚙️ 存档时覆盖 JSON，防止历史数据残留
 	SaveJsonToFile(SavedGameDataDBPath, SavedGameDataJsonDB); // true: 清理后写入
 	SaveJsonToFile(InventoryDBPath, InventoryJsonDB);
 }
-
 
 void UWarPersistentSystem::LoadGame()
 {
@@ -805,6 +802,8 @@ void UWarPersistentSystem::LoadGame()
 	// 建立快速 Guid 映射表
 	TMap<FGuid, AActor*> GuidToActorMap;
 
+	TWeakObjectPtr<AWarHeroCharacter> CurrentCharacter;
+
 	//先快速过滤拿到实现接口的Actors
 	for (TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
 	{
@@ -812,6 +811,10 @@ void UWarPersistentSystem::LoadGame()
 		if (IWarSaveGameInterface* SaveInterface = Cast<IWarSaveGameInterface>(Actor))
 		{
 			GuidToActorMap.Add(SaveInterface->GetPersistentID(), Actor);
+			if (AWarHeroCharacter* Character = Cast<AWarHeroCharacter>(Actor))
+			{
+				CurrentCharacter = Character;
+			}
 		}
 	}
 
@@ -865,14 +868,21 @@ void UWarPersistentSystem::LoadGame()
 					MemoryReader.Seek(0);
 					SaveInterface->LoadActorData(MemoryReader);
 				}
-
-				if (AInventoryBase* Inventory = Cast<AInventoryBase>(NewActor))
-				{
-					RestoreEquippedInventory(Inventory, SavedGameData.OwnerID);
-				}
 				//生成
 				UGameplayStatics::FinishSpawningActor(NewActor, NewTransform);
 			}
+		}
+	}
+
+	//根据数据表同步需要Spawn的装备
+	if (CurrentCharacter.IsValid())
+	{
+		TArray<FInventoryItemInDB> ItemInDBArray;
+		FindInventoryByState(CurrentCharacter->GetPersistentID(), true, ItemInDBArray);
+		if (ItemInDBArray.Num() <= 0) return;
+		for (const FInventoryItemInDB& ItemInDB : ItemInDBArray)
+		{
+			CurrentCharacter->GetWarInventoryComponent()->EquipInventory(ItemInDB.InstanceID);
 		}
 	}
 }
@@ -882,6 +892,16 @@ void UWarPersistentSystem::LoadGame()
 void UWarPersistentSystem::GeneratorPersistentID(AActor* Actor)
 {
 	if (!Actor) return;
+
+	// ✅ 状态过滤（例如：装备状态、未下地状态不分配 ID）
+	if (AInventoryBase* Inventory = Cast<AInventoryBase>(Actor))
+	{
+		if (Inventory->GetCurrentWorldState() == EInventoryWorldState::None ||
+			Inventory->GetCurrentWorldState() == EInventoryWorldState::Equipped)
+		{
+			return;
+		}
+	}
 
 	UWorld* World = Actor->GetWorld();
 	if (!World) return;
@@ -906,19 +926,4 @@ void UWarPersistentSystem::GeneratorPersistentID(AActor* Actor)
 			PersistentSystem->InsertSavedActor(SavedGameData);
 		}
 	}
-}
-
-
-// PersistentSystem 负责将装备挂载回角色
-void UWarPersistentSystem::RestoreEquippedInventory(AInventoryBase* Inventory, const FGuid& PlayerID) const
-{
-	AWarHeroCharacter* Character = UWarGameInstanceSubSystem::FindCharacterByPersistentID(this, PlayerID);
-	if (!Character || !Character->GetMesh()) return;
-
-	const FWarInventoryRow* FindRow = UWarGameInstanceSubSystem::FindInventoryRow(this, Inventory->GetTableRowID());
-	if (!FindRow) return;
-
-	FName Socket = FindRow->SocketName;
-	Inventory->AttachToComponent(Character->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, Socket);
-	print(TEXT("装备 %s 已挂载到 %s 的 Socket %s"), *Inventory->GetName(), *Character->GetName(), *Socket.ToString());
 }

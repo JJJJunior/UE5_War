@@ -68,7 +68,6 @@ public:
 	//给外部调用
 	void EquipInventory(const FGuid& InInstanceID);
 	void UnequipInventory(const FGuid& InInstanceID);
-	bool HasInventoryInSomeSocket(const FGuid& InInstanceID, FGuid& FindID) const;
 	
 	//广播通知UI打开状态
 	UPROPERTY()

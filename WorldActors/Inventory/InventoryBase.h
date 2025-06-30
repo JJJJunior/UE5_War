@@ -26,7 +26,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Inventory")
 	FName TableRowID;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Save")
-	FGuid PersistentID = FGuid();
+	FGuid PersistentID;
 	UPROPERTY()
 	EInventoryWorldState CurrentState = EInventoryWorldState::None;
 

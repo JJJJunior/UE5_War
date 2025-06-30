@@ -194,42 +194,6 @@ void UWarInventoryComponent::EquipInventory(const FGuid& InInstanceID)
 	RootPanelWidget->InventoryPanelWidget->AddItemToCharacterSlot(ItemInDB);
 }
 
-// 根据当前人物的 Socket 名称，检查是否已存在挂载的装备
-bool UWarInventoryComponent::HasInventoryInSomeSocket(const FGuid& InInstanceID, FGuid& FindID) const
-{
-	if (!InInstanceID.IsValid() || !CachedCharacter.IsValid() || !CachedCharacter->GetMesh())
-	{
-		return false;
-	}
-
-	const FName CurrentSocketName = CachedCharacter->GetMesh()->GetAttachSocketName();
-
-	UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
-	if (!Subsystem) return false;
-
-	UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
-	if (!PersistentSystem) return false;
-
-	// 遍历当前已装备的物品
-	TArray<FInventoryItemInDB> ItemInDBArray;
-	PersistentSystem->FindInventoryByState(CachedCharacter->GetPersistentID(), true, ItemInDBArray);
-	for (const FInventoryItemInDB& EquippedItem : ItemInDBArray)
-	{
-		// 排除自身（比如重新装备同一个物品）
-		if (EquippedItem.InstanceID == InInstanceID) continue;
-
-		const FWarInventoryRow* EquippedRow = UWarGameInstanceSubSystem::FindInventoryRow(this, EquippedItem.TableRowID);
-		if (!EquippedRow) return false;
-
-		// 如果已装备物品的 Socket 和当前人物 Socket 相同，返回它的 InstanceID		
-		if (EquippedRow->SocketName == CurrentSocketName)
-		{
-			FindID = EquippedItem.InstanceID;
-			return true;
-		}
-	}
-	return false;
-}
 
 //数据库中动态数据同步给背包
 bool UWarInventoryComponent::SyncJsonToBag() const
@@ -311,7 +275,7 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InInstanceID)
 	RollbackSpawnInventory(InInstanceID);
 	//修改数据库
 	PersistentSystem->MarkAsUnEquipped(InInstanceID, CachedCharacter->GetPersistentID());
-
+	
 	FInventoryItemInDB InventoryInDB;
 	PersistentSystem->FindInventoryByID(InInstanceID, CachedCharacter->GetPersistentID(), InventoryInDB);
 
