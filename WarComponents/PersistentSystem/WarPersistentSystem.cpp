@@ -484,8 +484,7 @@ void UWarPersistentSystem::UpdateInventory(const FInventoryItemInDB& InventoryIt
 
 			// 写回数据库
 			InventoryJsonDB->SetArrayField(InventoryFieldName, InventoryArray);
-
-			print(TEXT("物品已更新: %s"), *InventoryItemInDB.InstanceID.ToString());
+			// print(TEXT("物品已更新: %s"), *InventoryItemInDB.InstanceID.ToString());
 			return;
 		}
 	}

@@ -28,18 +28,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MyConfig")
 	AActor* CurrentInteractable = nullptr;
 	FVector CameraOffset = FVector::ZeroVector;
-	
+
 	//参数设定
 	FCollisionQueryParams TraceParams;
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MyConfig")
 	bool bEnableCrosshairTrace = false;
-	
+
 	UWarInteractionComponent();
 	//焦点射线检测
 	void CrosshairTrace();
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION()
 	virtual void EndOnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);

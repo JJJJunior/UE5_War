@@ -196,11 +196,27 @@ FReply UItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, con
 			{
 			case EWarInventoryType::Weapon:
 			case EWarInventoryType::Armor:
-				print(TEXT("右键了%s"), *SlotData.TableRowID.ToString());
-				//如果相同socket存在装备就取下防身上
-				if (UWarInventoryComponent* InventoryComponent = CachedCharacter->GetWarInventoryComponent())
+				// print(TEXT("右键了%s"), *SlotData.TableRowID.ToString());
+				//背包里面的物品右键逻辑
+				if (SlotData.SlotType == ESlotType::Normal)
 				{
-					InventoryComponent->EquipInventory(SlotData.InstanceID);
+					if (UWarInventoryComponent* InventoryComponent = CachedCharacter->GetWarInventoryComponent())
+					{
+						FGuid FindID = InventoryComponent->FindSomeTypeEquippedID(SlotData.InstanceID);
+						if (FindID.IsValid())
+						{
+							InventoryComponent->UnequipInventory(FindID);
+						}
+						InventoryComponent->EquipInventory(SlotData.InstanceID);
+					}
+				}
+				//角色身上右键逻辑
+				if (SlotData.SlotType != ESlotType::Normal && SlotData.SlotType != ESlotType::None && SlotData.SlotType != ESlotType::Skill)
+				{
+					if (UWarInventoryComponent* InventoryComponent = CachedCharacter->GetWarInventoryComponent())
+					{
+						InventoryComponent->UnequipInventory(SlotData.InstanceID);
+					}
 				}
 				break;
 			default:

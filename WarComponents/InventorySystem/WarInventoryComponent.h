@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
-#include "War/DataManager/DynamicData/InventoryData.h"
 #include "WarInventoryComponent.generated.h"
 
 
@@ -42,12 +41,11 @@ protected:
 	void SpawnInventory(const FGuid& InInstanceID);
 	void RollbackSpawnInventory(const FGuid& InInstanceID);
 	static void DestroyEquippedInventory(const TWeakObjectPtr<AInventoryBase>& Inventory);
+	// 查询当前装备指针
+	TWeakObjectPtr<AInventoryBase> FindSavedInventoryInSlots(const FGuid& InInstanceID) const;
 
 	//同步背包数据
 	bool SyncJsonToBag() const;
-
-	// 查询当前装备指针
-	TWeakObjectPtr<AInventoryBase> FindSavedInventoryInSlots(const FGuid& InInstanceID) const;
 
 public:
 	UWarInventoryComponent();
@@ -68,7 +66,8 @@ public:
 	//给外部调用
 	void EquipInventory(const FGuid& InInstanceID);
 	void UnequipInventory(const FGuid& InInstanceID);
-	
+	FGuid FindSomeTypeEquippedID(const FGuid& InInstanceID);
+
 	//广播通知UI打开状态
 	UPROPERTY()
 	FOnUIStateChanged OnUIStateChanged;

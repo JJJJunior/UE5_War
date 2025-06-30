@@ -118,6 +118,10 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InInstanceID)
 			{
 				// 缓存指针
 				SavedInventoryInSlots.Emplace(InInstanceID, InventoryActor);
+				// for (const auto& Item : SavedInventoryInSlots)
+				// {
+				// 	print(TEXT("当前SavedInventoryInSlots保存了：%s"), *Item.Key.ToString());
+				// }
 			}
 		});
 	}
@@ -143,6 +147,10 @@ void UWarInventoryComponent::SpawnInventory(const FGuid& InInstanceID)
 		{
 			// 缓存指针
 			SavedInventoryInSlots.Emplace(InInstanceID, InventoryActor);
+			// for (const auto& Item : SavedInventoryInSlots)
+			// {
+			// 	print(TEXT("当前SavedInventoryInSlots保存了：%s"), *Item.Key.ToString());
+			// }
 		}
 	}
 }
@@ -242,10 +250,46 @@ TWeakObjectPtr<AInventoryBase> UWarInventoryComponent::FindSavedInventoryInSlots
 		const FWarInventoryRow* EquippedRow = UWarGameInstanceSubSystem::FindInventoryRow(this, ItemInDB.TableRowID);
 		if (Inventory->GetAttachParentSocketName() == EquippedRow->SocketName)
 		{
+			// print(TEXT("正常执行了FindSavedInventoryInSlots。"));
 			return Inventory;
 		}
 	}
 	return nullptr;
+}
+
+//给一个ID返回已经装备的同类型的ID
+FGuid UWarInventoryComponent::FindSomeTypeEquippedID(const FGuid& InInstanceID)
+{
+	UWarGameInstanceSubSystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
+	if (!Subsystem) return FGuid();
+
+	UWarPersistentSystem* PersistentSystem = Subsystem->GetWarPersistentSystem();
+	if (!PersistentSystem) return FGuid();
+
+	FInventoryItemInDB NewItem;
+	if (!PersistentSystem->FindInventoryByID(InInstanceID, CachedCharacter->GetPersistentID(), NewItem) || !NewItem.InstanceID.IsValid())
+	{
+		return FGuid(); // 原物品无效
+	}
+	const FWarInventoryRow* NewItemInTable = UWarGameInstanceSubSystem::FindInventoryRow(this, NewItem.TableRowID);
+	if (!NewItemInTable) return FGuid();
+
+	for (const auto& Item : SavedInventoryInSlots)
+	{
+		if (Item.Key == InInstanceID) continue; // 跳过自己
+
+		FInventoryItemInDB CurrentItemInDB;
+		if (!PersistentSystem->FindInventoryByID(Item.Key, CachedCharacter->GetPersistentID(), CurrentItemInDB)) continue;
+
+		const FWarInventoryRow* CurrentItemInTable = UWarGameInstanceSubSystem::FindInventoryRow(this, CurrentItemInDB.TableRowID);
+		if (!CurrentItemInTable) continue;
+
+		if (CurrentItemInTable->SlotType == NewItemInTable->SlotType)
+		{
+			return Item.Key;
+		}
+	}
+	return FGuid();
 }
 
 
@@ -275,7 +319,7 @@ void UWarInventoryComponent::UnequipInventory(const FGuid& InInstanceID)
 	RollbackSpawnInventory(InInstanceID);
 	//修改数据库
 	PersistentSystem->MarkAsUnEquipped(InInstanceID, CachedCharacter->GetPersistentID());
-	
+
 	FInventoryItemInDB InventoryInDB;
 	PersistentSystem->FindInventoryByID(InInstanceID, CachedCharacter->GetPersistentID(), InventoryInDB);
 

@@ -229,7 +229,7 @@ void AWarHeroCharacter::CheckAllInventoriesInMemory() const
 			for (const auto& Item : Inventories)
 			{
 				GEngine->AddOnScreenDebugMessage(-1, 7.0f, FColor::Yellow, FString::Printf(TEXT("%s -- %s -- 数量[%d] 状态[%d]"), *Item.TableRowID.ToString(), *Item.InstanceID.ToString(), Item.Count, Item.bIsEquipped));
-				print(TEXT("%s -- %s -- [%d]"), *Item.TableRowID.ToString(), *Item.InstanceID.ToString(), Item.Count);
+				print(TEXT("%s -- %s -- 数量[%d] 状态[%d]"), *Item.TableRowID.ToString(), *Item.InstanceID.ToString(), Item.Count, Item.bIsEquipped);
 			}
 		}
 		else
