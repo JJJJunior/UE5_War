@@ -40,3 +40,12 @@ enum class ESlotType:uint8
 	Skill,
 	Normal
 };
+
+UENUM()
+enum class EAbilityInputID:uint8
+{
+	None = 0,
+	KatanaCombo1,
+	KatanaCombo2,
+	KatanaCombo4
+};

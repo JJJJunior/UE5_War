@@ -1,5 +1,4 @@
 ﻿#include "WarPersistentSystem.h"
-#include <devicetopology.h>
 #include "EngineUtils.h"
 #include "Characters/Hero/WarHeroCharacter.h"
 #include "DataManager/ConfigData/GameConfigData.h"

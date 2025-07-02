@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DataManager/EnumTypes/WarEnumTypes.h"
 #include "War/Characters/WarCharacterBase.h"
 #include "Logging/LogMacros.h"
 #include "WarHeroCharacter.generated.h"
@@ -73,6 +74,8 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UWarInteractionComponent> WarInteractionComponent;
 
+	void InitAbilitySystemComponent();
+
 public:
 	AWarHeroCharacter();
 
@@ -92,9 +95,14 @@ public:
 	void DisableTarget() const;
 
 	UFUNCTION(BlueprintCallable)
-	void CheckAllActorStateInMemory() const;
+	void TestCheckAllActorStateInMemory() const;
 	UFUNCTION(BlueprintCallable)
-	void CheckAllInventoriesInMemory() const;
+	void TestCheckAllInventoriesInMemory() const;
 	UFUNCTION(BlueprintCallable)
-	void AddSomeTestData() const;
+	void TestAddSomeTestData() const;
+	UFUNCTION(BlueprintCallable)
+	void TestInputAttackPressed(const EAbilityInputID InputID) const;
+
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_PlayerState() override;
 };

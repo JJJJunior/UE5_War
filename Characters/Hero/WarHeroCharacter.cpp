@@ -6,11 +6,14 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
 #include "InputActionValue.h"
+#include "DataManager/ConfigData/AbilitiesConfig.h"
 #include "War/DataManager/ConfigData/GameConfigData.h"
 #include "War/GameInstance/WarGameInstanceSubSystem.h"
 #include "War/GameTags/WarGameTags.h"
 #include "Kismet/GameplayStatics.h"
+#include "PlayerState/WarPlayerState.h"
 #include "Tools/MyLog.h"
+#include "WarComponents/AbilitySystem/WarAbilitySystemComponent.h"
 #include "WarComponents/Input/WarInputComponent.h"
 #include "WarComponents/InventorySystem/WarInventoryComponent.h"
 #include "WarComponents/InteractionSystem/WarInteractionComponent.h"
@@ -45,8 +48,28 @@ AWarHeroCharacter::AWarHeroCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
+	//物品管理组件
 	WarInventoryComponent = CreateDefaultSubobject<UWarInventoryComponent>(TEXT("WarInventoryComponent"));
+	//世界互动组件
 	WarInteractionComponent = CreateDefaultSubobject<UWarInteractionComponent>(TEXT("WarInteractionComponent"));
+}
+
+void AWarHeroCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	InitAbilitySystemComponent();
+
+	//授予能力
+	AbilitiesConfig->GiveAbilities(WarAbilitySystemComponent);
+	InitDefaultAttributes();
+}
+
+void AWarHeroCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	InitAbilitySystemComponent();
+	InitDefaultAttributes();
 }
 
 
@@ -69,6 +92,18 @@ void AWarHeroCharacter::BeginPlay()
 	// }
 }
 
+
+void AWarHeroCharacter::InitAbilitySystemComponent()
+{
+	//能力组件
+	AWarPlayerState* WarPlayerState = GetPlayerState<AWarPlayerState>();
+	check(WarPlayerState);
+	//父类定义
+	WarAbilitySystemComponent = CastChecked<UWarAbilitySystemComponent>(WarPlayerState->GetAbilitySystemComponent());
+	WarAbilitySystemComponent->InitAbilityActorInfo(WarPlayerState, this);
+
+	WarAttributeSet = WarPlayerState->GetAttributeSet();
+}
 
 void AWarHeroCharacter::EnableTarget() const
 {
@@ -189,7 +224,7 @@ void AWarHeroCharacter::ResetCooldown()
 }
 
 
-void AWarHeroCharacter::CheckAllActorStateInMemory() const
+void AWarHeroCharacter::TestCheckAllActorStateInMemory() const
 {
 	UWarGameInstanceSubSystem* SubSystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
 	if (!SubSystem) return;
@@ -216,7 +251,7 @@ void AWarHeroCharacter::CheckAllActorStateInMemory() const
 }
 
 
-void AWarHeroCharacter::CheckAllInventoriesInMemory() const
+void AWarHeroCharacter::TestCheckAllInventoriesInMemory() const
 {
 	UWarGameInstanceSubSystem* SubSystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UWarGameInstanceSubSystem>();
 	if (!SubSystem) return;
@@ -243,11 +278,20 @@ void AWarHeroCharacter::CheckAllInventoriesInMemory() const
 	}
 }
 
-void AWarHeroCharacter::AddSomeTestData() const
+void AWarHeroCharacter::TestAddSomeTestData() const
 {
 	TArray<FName> Items = {"Katana", "KatanaScabbard", "HealthPotion", "AnidotePotion", "InvisibilityPotion"};
 	for (const auto& Item : Items)
 	{
 		GetWarInventoryComponent()->GenerateItemToBagAndSaved(this, Item, this->GetPersistentID());
+	}
+}
+
+
+void AWarHeroCharacter::TestInputAttackPressed(const EAbilityInputID InputID)const
+{
+	if (WarAbilitySystemComponent)
+	{
+		WarAbilitySystemComponent->AbilityLocalInputPressed(static_cast<int32>(InputID));
 	}
 }

@@ -70,6 +70,28 @@ const FWarInventoryRow* UWarGameInstanceSubSystem::FindInventoryRow(const UObjec
 	return FindItemRow;
 }
 
+const FWarAbilityRow* UWarGameInstanceSubSystem::FindAbilityRow(const UObject* WorldContextObject, const FName& TableRowID)
+{
+	if (!WorldContextObject)
+	{
+		print(TEXT("WorldContextObject 不存在"))
+		return nullptr;
+	}
+	UWarGameInstanceSubSystem* Subsystem = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UWarGameInstanceSubSystem>();
+	if (!Subsystem || !Subsystem->WarInventoryDataTable)
+	{
+		print(TEXT("Subsystem or WarInventoryDataTable 不存在"))
+		return nullptr;
+	}
+	FWarAbilityRow* FindItemRow = Subsystem->WarAbilityDataTable->FindRow<FWarAbilityRow>(TableRowID, "FindAbilityRow");
+	if (!FindItemRow)
+	{
+		print(TEXT("FindItemRow 不存在"))
+		return nullptr;
+	}
+	return FindItemRow;
+}
+
 TWeakObjectPtr<UGameConfigData> UWarGameInstanceSubSystem::GetGameConfigData(const UObject* WorldContextObject)
 {
 	if (!WorldContextObject)

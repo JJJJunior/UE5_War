@@ -8,17 +8,16 @@ struct FWarAbilitySet
 {
 	GENERATED_BODY()
 
-	FWarAbilitySet(): Damage(0), Consume(0), Interval(0)
-	{
-	};
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	TSoftObjectPtr<UAnimMontage> AnimMontage;
+	TSoftObjectPtr<UAnimMontage> AnimMontage = nullptr;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	float Damage;
+	float Damage = 0.0f;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	float Consume;
+	float Consume = 0.0f;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	float Interval;
+	float Interval = 0.0f;
+
+	FWarAbilitySet() = default;
 };
 
 

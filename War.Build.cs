@@ -20,6 +20,8 @@ public class War : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"GameplayTags",
+			"GameplayTasks",
+			"GameplayAbilities",
 			"Json",
 			"JsonUtilities",
 		});

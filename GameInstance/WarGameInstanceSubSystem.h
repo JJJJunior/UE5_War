@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "DataManager/StaticData/WarDataTableType.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "War/WarComponents/InventorySystem/StaticData/WarInventoryDataTableRow.h"
 #include "WarGameInstanceSubSystem.generated.h"
@@ -39,6 +40,7 @@ public:
 	FORCEINLINE TObjectPtr<UGameConfigData> GetCachedGameConfigData() const { return GameConfigData; }
 	//静态全局查找
 	static const FWarInventoryRow* FindInventoryRow(const UObject* WorldContextObject, const FName& TableRowID);
+	static const FWarAbilityRow* FindAbilityRow(const UObject* WorldContextObject, const FName& TableRowID);
 	static TWeakObjectPtr<UGameConfigData> GetGameConfigData(const UObject* WorldContextObject);
 	static FString GetStaticPlayerID(const UObject* WorldContextObject);
 	static AWarHeroCharacter* FindCharacterByPersistentID(const UObject* WorldContextObject, const FGuid& PersistentID);
